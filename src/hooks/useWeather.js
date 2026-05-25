@@ -1,0 +1,62 @@
+import { useEffect, useState } from 'react'
+
+const LAT = 29.453
+const LON = -94.534
+const CACHE_KEY = 'pbh_weather_v1'
+const CACHE_TTL = 30 * 60 * 1000 // 30 min
+
+export function wmoInterpret(code) {
+  if (code === 0)  return { label: 'Clear', emoji: '☀️' }
+  if (code <= 2)   return { label: 'Partly cloudy', emoji: '⛅' }
+  if (code === 3)  return { label: 'Overcast', emoji: '☁️' }
+  if (code <= 48)  return { label: 'Foggy', emoji: '🌫️' }
+  if (code <= 55)  return { label: 'Drizzle', emoji: '🌦️' }
+  if (code <= 65)  return { label: 'Rain', emoji: '🌧️' }
+  if (code <= 75)  return { label: 'Snow', emoji: '❄️' }
+  if (code <= 82)  return { label: 'Showers', emoji: '🌦️' }
+  return { label: 'Thunderstorm', emoji: '⛈️' }
+}
+
+export function useWeather() {
+  const [weather, setWeather] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem(CACHE_KEY) ?? 'null')
+      if (cached && Date.now() - cached.ts < CACHE_TTL) {
+        setWeather(cached.data)
+        setLoading(false)
+        return
+      }
+    } catch { /* ignore bad cache */ }
+
+    const url =
+      `https://api.open-meteo.com/v1/forecast` +
+      `?latitude=${LAT}&longitude=${LON}` +
+      `&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m` +
+      `&temperature_unit=fahrenheit&windspeed_unit=mph&timezone=America%2FChicago`
+
+    fetch(url)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then((json) => {
+        const c = json.current
+        const result = {
+          temp: Math.round(c.temperature_2m),
+          feelsLike: Math.round(c.apparent_temperature),
+          wind: Math.round(c.windspeed_10m),
+          ...wmoInterpret(c.weathercode),
+        }
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: result })) } catch { /* quota */ }
+        setWeather(result)
+      })
+      .catch((e) => setError(e))
+      .finally(() => setLoading(false))
+  }, [])
+
+  return { weather, loading, error }
+}

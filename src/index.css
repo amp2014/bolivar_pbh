@@ -1,0 +1,154 @@
+/* ── Design Tokens ──────────────────────────────────────────── */
+:root {
+  /* Primary palette — navy → teal */
+  --color-navy:        #1a3a5c;
+  --color-navy-mid:    #1e4d6b;
+  --color-teal:        #2ab8c4;
+  --color-teal-light:  #5ecfda;
+  --color-teal-xlight: #e0f7fa;
+
+  /* Secondary — sand neutrals */
+  --color-sand-50:   #faf8f5;
+  --color-sand-100:  #f4f0e8;
+  --color-sand-200:  #e8dfc8;
+  --color-sand-400:  #c4a882;
+  --color-sand-600:  #8c7355;
+
+  /* Accents */
+  --color-coral:     #e8745a;
+  --color-seafoam:   #7ecbb5;
+  --color-sun:       #f5a623;
+
+  /* Semantic */
+  --color-bg:        var(--color-sand-50);
+  --color-surface:   #ffffff;
+  --color-border:    var(--color-sand-200);
+  --color-text:      #1c2b3a;
+  --color-text-muted:#5a6a7a;
+  --color-primary:   var(--color-navy);
+  --color-accent:    var(--color-teal);
+
+  /* Typography */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+  --font-mono:    'SF Mono', 'Fira Code', monospace;
+
+  /* Radii */
+  --radius-sm:   8px;
+  --radius-md:   14px;
+  --radius-lg:   20px;
+  --radius-full: 999px;
+
+  /* Shadows */
+  --shadow-card: 0 2px 12px rgba(26, 58, 92, 0.08);
+  --shadow-nav:  0 -1px 16px rgba(26, 58, 92, 0.10);
+
+  /* Spacing — safe areas for iOS notch */
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Bottom nav height */
+  --nav-height: 64px;
+}
+
+/* ── Reset ──────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  height: 100%;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+img, svg { display: block; max-width: 100%; }
+
+a { color: inherit; text-decoration: none; }
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* ── Typography helpers ─────────────────────────────────────── */
+.font-display { font-family: var(--font-display); }
+.font-mono    { font-family: var(--font-mono); }
+
+/* ── Layout ─────────────────────────────────────────────────── */
+.page {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
+  padding-top: calc(var(--safe-top) + 16px);
+}
+
+.page-inner {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* ── Card ───────────────────────────────────────────────────── */
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
+  padding: 16px;
+}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--color-navy);
+  color: #fff;
+}
+.btn-primary:hover { opacity: 0.9; }
+
+.btn-teal {
+  background: var(--color-teal);
+  color: #fff;
+}
+.btn-teal:hover { opacity: 0.9; }
+
+.btn-outline {
+  border: 1.5px solid var(--color-border);
+  color: var(--color-text);
+  background: transparent;
+}
+
+/* ── Scrollbar (webkit) ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-sand-200); border-radius: 4px; }
