@@ -9,6 +9,7 @@ import WhosThereCard from '../components/dashboard/WhosThereCard'
 import AnnouncementsCard from '../components/dashboard/AnnouncementsCard'
 import TickerBanner from '../components/dashboard/TickerBanner'
 import FunFactCard from '../components/dashboard/FunFactCard'
+import { PhotoFeedPreview } from './Photos'
 
 function greeting() {
   const h = new Date().getHours()
@@ -102,6 +103,21 @@ export default function Home() {
 
         {/* Fun fact — between Who's There and Announcements */}
         <FunFactCard facts={facts} />
+
+        {/* Recent photos strip */}
+        <div style={{ marginTop: '16px', marginBottom: '4px' }}>
+          <p style={{
+            fontSize: '10px',
+            fontFamily: 'var(--font-mono)',
+            color: 'var(--color-text-muted)',
+            letterSpacing: '2px',
+            textTransform: 'uppercase',
+            marginBottom: '10px',
+          }}>
+            Recent Photos
+          </p>
+          <PhotoFeedPreview />
+        </div>
 
         {/* Row 3: Announcements */}
         <AnnouncementsCard />

@@ -13,6 +13,7 @@ import SupplyCheck from './pages/SupplyCheck'
 import Announcements from './pages/Announcements'
 import Emergency from './pages/Emergency'
 import Admin from './pages/Admin'
+import Photos from './pages/Photos'
 
 function AppShell({ children }) {
   return (
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="/house" element={<AppShell><House /></AppShell>} />
             <Route path="/local" element={<AppShell><Local /></AppShell>} />
             <Route path="/announcements" element={<AppShell><Announcements /></AppShell>} />
+            <Route path="/photos" element={<AppShell><Photos /></AppShell>} />
             <Route path="/admin" element={<AppShell><Admin /></AppShell>} />
           </Route>
         </Routes>
