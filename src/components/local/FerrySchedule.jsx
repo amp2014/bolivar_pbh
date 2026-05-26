@@ -80,9 +80,9 @@ export default function FerrySchedule() {
         </p>
         {[
           '🚗  Pull up close — attendants fill every row. Don\'t leave gaps.',
-          '⏱️  Arrive 5–10 min early, especially summer weekends.',
           '🌊  Rough water? Crossing may be slower or temporarily suspended.',
-          '📱  TxDOT alerts: drivetexas.org or call 511 for live status.',
+          '📱  Check @GalvestonFerry on X and the TranStar website before you pass I-10 — that\'s when to decide which way to go.',
+          '🏠  If you can see cars in a line from the patio, you don\'t want to get in the ferry line.',
         ].map((tip, i) => (
           <p key={i} style={{ fontSize: '13px', color: 'var(--color-text)', lineHeight: 1.6, marginBottom: i < 3 ? '6px' : 0 }}>
             {tip}

@@ -73,17 +73,10 @@ async function fetchAnnouncement() {
   return `📢 ${author}: "${truncated}"`
 }
 
-async function buildItems(facts, weather) {
+async function buildItems(weather) {
   const today = new Date().toISOString().split('T')[0]
   const items = []
 
-  // a) 3 random facts
-  if (facts.length > 0) {
-    const shuffled = [...facts].sort(() => Math.random() - 0.5)
-    shuffled.slice(0, 3).forEach((f) => items.push(`🗺 ${f.short_fact}`))
-  }
-
-  // b-g) parallel async sources — failures silently skipped
   const results = await Promise.allSettled([
     fetchWhosThere(today),
     fetchUpcoming(today),
@@ -98,7 +91,6 @@ async function buildItems(facts, weather) {
   if (whosThere)    items.push(whosThere)
   if (upcoming)     items.push(upcoming)
 
-  // d) weather
   if (weather) {
     items.push(`🌤 ${weather.temp}°F in Bolivar · ${weather.label} · winds ${weather.wind} mph`)
   }
@@ -107,21 +99,14 @@ async function buildItems(facts, weather) {
   if (project)      items.push(project)
   if (announcement) items.push(announcement)
 
-  // h) ferry reminder — always
   items.push(FERRY_REMINDER)
-
-  // minimum 3 items — pad with more facts if needed
-  if (items.length < 3 && facts.length > 0) {
-    const extra = facts.filter((f) => !items.some((i) => i.includes(f.short_fact.slice(0, 20))))
-    extra.slice(0, 3 - items.length).forEach((f) => items.push(`🗺 ${f.short_fact}`))
-  }
 
   return items
 }
 
 // ── Component ─────────────────────────────────────────────────
 
-export default function TickerBanner({ facts }) {
+export default function TickerBanner() {
   const { weather } = useWeather()
   const [items, setItems] = useState([])
   const [duration, setDuration] = useState(60)
@@ -146,13 +131,13 @@ export default function TickerBanner({ facts }) {
   useEffect(() => {
     let cancelled = false
     async function run() {
-      const result = await buildItems(facts, weather)
+      const result = await buildItems(weather)
       if (!cancelled) setItems(result)
     }
     run()
     const interval = setInterval(run, 10 * 60 * 1000)
     return () => { cancelled = true; clearInterval(interval) }
-  }, [facts, weather]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [weather]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useLayoutEffect(() => {
     if (trackRef.current && items.length > 0) {

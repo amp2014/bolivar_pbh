@@ -9,7 +9,7 @@ const shimmer = {
 }
 
 export default function WeatherCard() {
-  const { weather, loading } = useWeather()
+  const { weather, loading, refetch } = useWeather()
 
   return (
     <a
@@ -35,9 +35,22 @@ export default function WeatherCard() {
           <div style={{ ...shimmer, height: '14px', width: '80px' }} />
         </div>
       ) : !weather ? (
-        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '8px' }}>
-          Unavailable
-        </p>
+        <div style={{ marginTop: '8px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+            Unavailable
+          </p>
+          <button
+            onClick={(e) => { e.preventDefault(); refetch() }}
+            style={{
+              fontSize: '11px', color: 'var(--color-teal)', fontWeight: 600,
+              border: '1px solid var(--color-teal)', borderRadius: 'var(--radius-full)',
+              background: 'transparent', padding: '4px 10px', cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+            }}
+          >
+            Retry
+          </button>
+        </div>
       ) : (
         <>
           <div style={{ fontSize: '34px', lineHeight: 1, marginBottom: '4px' }}>

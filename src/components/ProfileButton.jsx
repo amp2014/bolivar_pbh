@@ -7,11 +7,14 @@ export default function ProfileButton() {
   const [editingAddr, setEditingAddr] = useState(false)
   const [addrInput, setAddrInput]     = useState('')
   const [saving, setSaving]           = useState(false)
+  const [saveErr, setSaveErr]         = useState(false)
 
   async function saveAddress() {
     setSaving(true)
-    await updateProfile({ home_address: addrInput.trim() || null })
+    setSaveErr(false)
+    const { error } = await updateProfile({ home_address: addrInput.trim() || null })
     setSaving(false)
+    if (error) { setSaveErr(true); return }
     setEditingAddr(false)
   }
 
@@ -109,6 +112,11 @@ export default function ProfileButton() {
                       boxSizing: 'border-box', marginBottom: '8px',
                     }}
                   />
+                  {saveErr && (
+                    <p style={{ fontSize: '12px', color: 'var(--color-coral)', marginBottom: '6px' }}>
+                      Couldn't save — try again
+                    </p>
+                  )}
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                       onClick={saveAddress}

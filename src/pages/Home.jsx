@@ -79,7 +79,7 @@ export default function Home() {
       </div>
 
       {/* ── Ticker ────────────────────────────────────────── */}
-      <TickerBanner facts={facts} />
+      <TickerBanner />
 
       {/* ── Cards ─────────────────────────────────────────── */}
       <div className="page-inner" style={{ paddingTop: '16px' }}>

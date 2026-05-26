@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { getTravelTimes, formatMins } from '../../lib/travelTime'
 
@@ -6,55 +6,16 @@ const CAM_GALV    = 'http://www.houstontranstar.org/snapshots/cctv/180.jpg'
 const CAM_BOLIV   = 'http://www.houstontranstar.org/snapshots/cctv/181.jpg'
 const WAIT_URL    = 'https://traffic.houstontranstar.org/ferrytimes/ferrywaittimes_travel.html'
 const TRANSTAR_FERRY = 'https://www.houstontranstar.org/road_conditions/ferry_conditions.aspx'
-const TWITTER_URL = 'https://twitter.com/GalvestonFerry'
+const TWITTER_URL = 'https://x.com/GalvestonFerry'
 
 export default function FerryStatusCard() {
-  const { profile }                 = useAuth()
-  const homeAddress                 = profile?.home_address ?? null
-  const [cacheKey, setCacheKey]     = useState(() => Date.now())
-  const [mountTime]                 = useState(() => new Date())
-  const [galvErr, setGalvErr]       = useState(false)
-  const [bolivErr, setBolivErr]     = useState(false)
-  const [modalSrc, setModalSrc]     = useState(null)
-  const [tweetState, setTweetState] = useState('loading') // loading | ready | error
-  const twitterRef                  = useRef(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    const initTimeline = () => {
-      if (cancelled || !twitterRef.current) return
-      window.twttr.widgets
-        .createTimeline(
-          { sourceType: 'profile', screenName: 'GalvestonFerry' },
-          twitterRef.current,
-          { tweetLimit: 2, theme: 'light', chrome: 'noheader nofooter noborders', width: '100%' }
-        )
-        .then(() => { if (!cancelled) setTweetState('ready') })
-        .catch(() => { if (!cancelled) setTweetState('error') })
-    }
-
-    // Standard Twitter async init pattern — queues until widget.js processes _e
-    if (window.twttr?.widgets) {
-      initTimeline()
-    } else {
-      window.twttr = window.twttr || { _e: [], ready: (f) => window.twttr._e.push(f) }
-      window.twttr._e = window.twttr._e || []
-      window.twttr._e.push(initTimeline)
-
-      if (!document.getElementById('twitter-wjs')) {
-        const s = document.createElement('script')
-        s.id      = 'twitter-wjs'
-        s.src     = 'https://platform.twitter.com/widgets.js'
-        s.async   = true
-        s.charset = 'utf-8'
-        s.onerror = () => { if (!cancelled) setTweetState('error') }
-        document.head.appendChild(s)
-      }
-    }
-
-    return () => { cancelled = true }
-  }, [])
+  const { profile }             = useAuth()
+  const homeAddress             = profile?.home_address ?? null
+  const [cacheKey, setCacheKey] = useState(() => Date.now())
+  const [mountTime]             = useState(() => new Date())
+  const [galvErr, setGalvErr]   = useState(false)
+  const [bolivErr, setBolivErr] = useState(false)
+  const [modalSrc, setModalSrc] = useState(null)
 
   const refresh = useCallback(() => {
     setCacheKey(Date.now())
@@ -99,44 +60,30 @@ export default function FerryStatusCard() {
         </div>
       </div>
 
-      {/* ── @GalvestonFerry Timeline ────────────────────── */}
-      <div className="card" style={{ marginBottom: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-navy)', lineHeight: 1 }}>𝕏</span>
-            <p style={sectionLabel}>@GalvestonFerry Updates</p>
-          </div>
-          <a
-            href={TWITTER_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ fontSize: '11px', color: 'var(--color-teal)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}
-          >
-            Open →
-          </a>
-        </div>
-
-        {tweetState === 'loading' && <TwitterSkeleton />}
-
-        {tweetState === 'error' && (
-          <div style={{ padding: '8px 0 4px', textAlign: 'center' }}>
-            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
-              Tweets unavailable
+      {/* ── @GalvestonFerry on X ───────────────────────── */}
+      <a
+        href={TWITTER_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="card"
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          marginBottom: '10px', textDecoration: 'none', color: 'inherit',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-navy)', lineHeight: 1, fontFamily: 'serif' }}>𝕏</span>
+          <div>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-navy)', marginBottom: '2px' }}>
+              @GalvestonFerry
             </p>
-            <a
-              href={TWITTER_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ fontSize: '13px', color: 'var(--color-teal)', fontWeight: 600 }}
-            >
-              Visit @GalvestonFerry on X →
-            </a>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+              Live service alerts & updates
+            </p>
           </div>
-        )}
-
-        {/* Twitter widget renders into this div */}
-        <div ref={twitterRef} />
-      </div>
+        </div>
+        <span style={{ fontSize: '14px', color: 'var(--color-teal)', fontWeight: 700 }}>Open →</span>
+      </a>
 
       {/* ── Wait Times + Static Fallback ────────────────── */}
       <div className="card">
@@ -269,26 +216,6 @@ function CameraView({ label, src, hasError, onError, onTap }) {
   )
 }
 
-function TwitterSkeleton() {
-  return (
-    <div style={{ paddingBottom: '4px' }}>
-      {[
-        { w: '85%', mb: '6px' },
-        { w: '62%', mb: '14px' },
-        { w: '90%', mb: '6px' },
-        { w: '55%', mb: '0' },
-      ].map(({ w, mb }, i) => (
-        <div key={i} style={{
-          height: '11px',
-          background: 'var(--color-sand-100)',
-          borderRadius: 'var(--radius-full)',
-          width: w,
-          marginBottom: mb,
-        }} />
-      ))}
-    </div>
-  )
-}
 
 function InfoRow({ icon, label, value }) {
   return (
