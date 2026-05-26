@@ -1,13 +1,53 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+
+function useAddressSuggestions(query) {
+  const [suggestions, setSuggestions] = useState([])
+  const timerRef = useRef(null)
+
+  useEffect(() => {
+    if (query.trim().length < 4) { setSuggestions([]); return }
+
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(async () => {
+      try {
+        const url =
+          `https://nominatim.openstreetmap.org/search` +
+          `?format=json&addressdetails=1&limit=5&countrycodes=us` +
+          `&q=${encodeURIComponent(query)}`
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
+        if (!res.ok) return
+        const data = await res.json()
+        setSuggestions(data.map((r) => r.display_name))
+      } catch (_) {}
+    }, 420)
+
+    return () => clearTimeout(timerRef.current)
+  }, [query])
+
+  return suggestions
+}
 
 export default function ProfileButton() {
   const { profile, role, signOut, updateProfile } = useAuth()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen]               = useState(false)
   const [editingAddr, setEditingAddr] = useState(false)
   const [addrInput, setAddrInput]     = useState('')
   const [saving, setSaving]           = useState(false)
   const [saveErr, setSaveErr]         = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(true)
+
+  const suggestions = useAddressSuggestions(addrInput)
+
+  function pickSuggestion(s) {
+    setAddrInput(s)
+    setShowSuggestions(false)
+  }
+
+  function handleAddrChange(e) {
+    setAddrInput(e.target.value)
+    setShowSuggestions(true)
+  }
 
   async function saveAddress() {
     setSaving(true)
@@ -16,6 +56,7 @@ export default function ProfileButton() {
     setSaving(false)
     if (error) { setSaveErr(true); return }
     setEditingAddr(false)
+    setShowSuggestions(false)
   }
 
   const avatarUrl = profile?.avatar_url
@@ -65,6 +106,8 @@ export default function ProfileButton() {
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
               <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-sand-200)' }} />
             </div>
+
+            {/* Avatar + name */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
               <div style={{
                 width: 52, height: 52, borderRadius: '50%', overflow: 'hidden',
@@ -85,6 +128,7 @@ export default function ProfileButton() {
                 </p>
               </div>
             </div>
+
             {/* Home address */}
             <div style={{ marginBottom: '20px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
               <p style={{
@@ -93,31 +137,80 @@ export default function ProfileButton() {
               }}>
                 Home Address
               </p>
+
               {editingAddr ? (
-                <div>
+                <div style={{ position: 'relative' }}>
                   <input
                     type="text"
                     value={addrInput}
-                    onChange={(e) => setAddrInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') saveAddress(); if (e.key === 'Escape') setEditingAddr(false) }}
+                    onChange={handleAddrChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveAddress()
+                      if (e.key === 'Escape') { setEditingAddr(false); setShowSuggestions(false) }
+                    }}
                     placeholder="123 Main St, Houston, TX 77019"
                     autoFocus
+                    autoComplete="off"
                     style={{
                       width: '100%', height: '44px', padding: '0 14px',
-                      borderRadius: 'var(--radius-sm)',
+                      borderRadius: showSuggestions && suggestions.length > 0
+                        ? 'var(--radius-sm) var(--radius-sm) 0 0'
+                        : 'var(--radius-sm)',
                       border: '1.5px solid var(--color-teal)',
+                      borderBottom: showSuggestions && suggestions.length > 0
+                        ? '1.5px solid var(--color-border)'
+                        : '1.5px solid var(--color-teal)',
                       background: 'var(--color-sand-50)',
                       fontFamily: 'var(--font-body)', fontSize: '14px',
                       color: 'var(--color-text)', outline: 'none',
-                      boxSizing: 'border-box', marginBottom: '8px',
+                      boxSizing: 'border-box',
                     }}
                   />
+
+                  {/* Autocomplete dropdown */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <ul style={{
+                      position: 'absolute', top: '44px', left: 0, right: 0,
+                      background: 'white',
+                      border: '1.5px solid var(--color-teal)',
+                      borderTop: 'none',
+                      borderRadius: '0 0 var(--radius-sm) var(--radius-sm)',
+                      margin: 0, padding: 0, listStyle: 'none',
+                      zIndex: 10,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.10)',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                    }}>
+                      {suggestions.map((s, i) => (
+                        <li
+                          key={i}
+                          onMouseDown={(e) => { e.preventDefault(); pickSuggestion(s) }}
+                          onTouchEnd={(e) => { e.preventDefault(); pickSuggestion(s) }}
+                          style={{
+                            padding: '10px 14px',
+                            fontSize: '13px',
+                            color: 'var(--color-navy)',
+                            fontFamily: 'var(--font-body)',
+                            borderBottom: i < suggestions.length - 1 ? '1px solid var(--color-border)' : 'none',
+                            cursor: 'pointer',
+                            lineHeight: 1.4,
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-teal-xlight)' }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'white' }}
+                        >
+                          📍 {s}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
                   {saveErr && (
-                    <p style={{ fontSize: '12px', color: 'var(--color-coral)', marginBottom: '6px' }}>
+                    <p style={{ fontSize: '12px', color: 'var(--color-coral)', margin: '6px 0' }}>
                       Couldn't save — try again
                     </p>
                   )}
-                  <div style={{ display: 'flex', gap: '8px' }}>
+
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                     <button
                       onClick={saveAddress}
                       disabled={saving}
@@ -127,7 +220,7 @@ export default function ProfileButton() {
                       {saving ? 'Saving…' : 'Save'}
                     </button>
                     <button
-                      onClick={() => setEditingAddr(false)}
+                      onClick={() => { setEditingAddr(false); setShowSuggestions(false) }}
                       style={{
                         flex: 1, height: '40px', fontSize: '14px',
                         border: '1.5px solid var(--color-border)',
@@ -149,7 +242,7 @@ export default function ProfileButton() {
                     {profile?.home_address ?? 'Not set — add for drive time estimates'}
                   </p>
                   <button
-                    onClick={() => { setAddrInput(profile?.home_address ?? ''); setEditingAddr(true) }}
+                    onClick={() => { setAddrInput(profile?.home_address ?? ''); setEditingAddr(true); setShowSuggestions(true) }}
                     style={{
                       fontSize: '13px', color: 'var(--color-teal)', fontWeight: 600,
                       border: 'none', background: 'none', cursor: 'pointer',
