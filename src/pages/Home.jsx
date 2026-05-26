@@ -1,11 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 import OnboardingModal from '../components/onboarding/OnboardingModal'
 import WeatherCard from '../components/dashboard/WeatherCard'
 import FerryCard from '../components/dashboard/FerryCard'
 import WhosThereCard from '../components/dashboard/WhosThereCard'
 import AnnouncementsCard from '../components/dashboard/AnnouncementsCard'
+import TickerBanner from '../components/dashboard/TickerBanner'
+import FunFactCard from '../components/dashboard/FunFactCard'
 
 function greeting() {
   const h = new Date().getHours()
@@ -15,13 +18,14 @@ function greeting() {
 }
 
 export default function Home() {
-  const { profile, role, signOut, refreshProfile } = useAuth()
-  const [showProfile, setShowProfile] = useState(false)
+  const { profile, refreshProfile } = useAuth()
   const firstName = profile?.display_name?.split(' ')[0] ?? 'there'
 
-  const avatarUrl = profile?.avatar_url
-  const initials = (profile?.display_name ?? '?')
-    .split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+  const [facts, setFacts] = useState([])
+  useEffect(() => {
+    supabase.from('facts').select('*').eq('active', true)
+      .then(({ data }) => setFacts(data ?? []))
+  }, [])
 
   return (
     <>
@@ -42,24 +46,6 @@ export default function Home() {
         >
           <path d="M0 30 Q94 0 188 30 Q282 60 375 30 L375 60 L0 60 Z" fill="white" />
         </svg>
-
-        {/* Avatar button — top right */}
-        <button
-          onClick={() => setShowProfile(true)}
-          style={{
-            position: 'absolute', top: 'calc(var(--safe-top) + 20px)', right: '20px',
-            width: 38, height: 38, borderRadius: '50%',
-            overflow: 'hidden', border: '2px solid rgba(255,255,255,0.3)',
-            background: 'rgba(255,255,255,0.15)', cursor: 'pointer', padding: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 1,
-          }}
-        >
-          {avatarUrl
-            ? <img src={avatarUrl} alt="profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <span style={{ color: 'white', fontSize: '13px', fontWeight: 700, fontFamily: 'var(--font-body)' }}>{initials}</span>
-          }
-        </button>
 
         <p style={{
           color: 'rgba(255,255,255,0.55)',
@@ -92,51 +78,8 @@ export default function Home() {
         </p>
       </div>
 
-      {/* ── Profile sheet ─────────────────────────────────── */}
-      {showProfile && (
-        <>
-          <div
-            onClick={() => setShowProfile(false)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200 }}
-          />
-          <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201,
-            background: 'white', borderRadius: '20px 20px 0 0',
-            padding: '12px 24px calc(24px + var(--safe-bottom))',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-sand-200)' }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
-              <div style={{
-                width: 52, height: 52, borderRadius: '50%', overflow: 'hidden',
-                background: 'var(--color-teal-xlight)', flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {avatarUrl
-                  ? <img src={avatarUrl} alt="profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-navy)' }}>{initials}</span>
-                }
-              </div>
-              <div>
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 600, color: 'var(--color-navy)' }}>
-                  {profile?.display_name ?? 'Unknown'}
-                </p>
-                <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
-                  {profile?.email} · <span style={{ textTransform: 'capitalize' }}>{role}</span>
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={signOut}
-              className="btn btn-outline"
-              style={{ width: '100%', height: '48px', fontSize: '15px', color: 'var(--color-coral)', borderColor: 'var(--color-coral)' }}
-            >
-              Sign out
-            </button>
-          </div>
-        </>
-      )}
+      {/* ── Ticker ────────────────────────────────────────── */}
+      <TickerBanner facts={facts} />
 
       {/* ── Cards ─────────────────────────────────────────── */}
       <div className="page-inner" style={{ paddingTop: '16px' }}>
@@ -156,6 +99,9 @@ export default function Home() {
         <div style={{ marginBottom: '12px' }}>
           <WhosThereCard />
         </div>
+
+        {/* Fun fact — between Who's There and Announcements */}
+        <FunFactCard facts={facts} />
 
         {/* Row 3: Announcements */}
         <AnnouncementsCard />

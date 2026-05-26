@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom'
+
 // Galveston–Bolivar ferry runs 24/7. Schedule is approximate:
 // Peak 6am–9pm: ~every 20 min | Evening 9pm–midnight: ~every 30 min | Night: ~hourly
 
@@ -21,13 +23,21 @@ function nextDeparture(offsetFromNowMins = 0) {
 }
 
 export default function FerryCard() {
+  const navigate = useNavigate()
   const fromGalv = nextDeparture(0)
   // Bolivar departures are offset ~10 min from Galveston (crossing ~18 min)
   const fromBoliv = nextDeparture(10)
 
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column', minHeight: '148px' }}>
-      <p style={labelStyle}>Ferry</p>
+    <div
+      className="card"
+      onClick={() => navigate('/local')}
+      style={{ display: 'flex', flexDirection: 'column', minHeight: '148px', cursor: 'pointer' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <p style={labelStyle}>Ferry</p>
+        <span style={{ fontSize: '11px', color: 'var(--color-teal)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>status ›</span>
+      </div>
 
       <div style={{ fontSize: '28px', marginBottom: '10px' }}>⛴️</div>
 

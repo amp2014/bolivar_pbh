@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import FerryStatusCard from '../components/local/FerryStatusCard'
 import FerrySchedule from '../components/local/FerrySchedule'
 import LocalFavorites from '../components/local/LocalFavorites'
 
@@ -54,7 +55,14 @@ export default function Local() {
           ))}
         </div>
 
-        {tab === 'Ferry'     && <FerrySchedule />}
+        {tab === 'Ferry' && (
+          <>
+            <FerryStatusCard />
+            <div style={{ marginTop: '16px' }}>
+              <FerrySchedule />
+            </div>
+          </>
+        )}
         {tab === 'Favorites' && <LocalFavorites />}
 
       </div>

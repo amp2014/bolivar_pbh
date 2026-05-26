@@ -70,6 +70,13 @@ export function AuthProvider({ children }) {
     if (session?.user?.id) await fetchProfile(session.user.id)
   }
 
+  async function updateProfile(changes) {
+    if (!session?.user?.id) return { error: new Error('No session') }
+    const { error } = await supabase.from('users').update(changes).eq('id', session.user.id)
+    if (!error) await fetchProfile(session.user.id)
+    return { error }
+  }
+
   async function signOut() {
     clearCachedProviderToken()
     await supabase.auth.signOut()
@@ -87,6 +94,7 @@ export function AuthProvider({ children }) {
     signInWithGoogle,
     signOut,
     refreshProfile,
+    updateProfile,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

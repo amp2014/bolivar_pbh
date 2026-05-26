@@ -3,8 +3,25 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { createCalendarEvent, updateCalendarEvent } from '../../lib/googleCalendar'
 
+const ROOM_OPTIONS = [
+  { id: 'Room 1',      sub: 'Queen bed · pack-n-play fits' },
+  { id: 'Room 2',      sub: 'Queen bed · twin bunk beds' },
+  { id: 'Room 3',      sub: '2 Queen beds · twin bunk bed' },
+  { id: 'Living Room', sub: '2 sleeper couches' },
+]
+
+// Rooms are serialized as a prefix in the notes field: "Rooms: Room 1, Room 3\n"
+function parseNotesRooms(raw) {
+  if (!raw) return { rooms: [], cleanNotes: '' }
+  const m = raw.match(/^Rooms: ([^\n]+)\n?/)
+  if (!m) return { rooms: [], cleanNotes: raw }
+  return { rooms: m[1].split(', ').filter(Boolean), cleanNotes: raw.slice(m[0].length) }
+}
+
 export default function BookingForm({ booking = null, onSave, onClose }) {
   const { user, profile, providerToken } = useAuth()
+
+  const parsedNotes = parseNotesRooms(booking?.notes ?? '')
 
   // Animation
   const [visible, setVisible] = useState(false)
@@ -23,7 +40,8 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
   const [startDate, setStartDate]   = useState(booking?.start_date ?? '')
   const [endDate, setEndDate]       = useState(booking?.end_date ?? '')
   const [partySize, setPartySize]   = useState(booking?.party_size ?? 1)
-  const [notes, setNotes]           = useState(booking?.notes ?? '')
+  const [rooms, setRooms]           = useState(parsedNotes.rooms)
+  const [notes, setNotes]           = useState(parsedNotes.cleanNotes)
   const [status, setStatus]         = useState(booking?.status ?? 'confirmed')
 
   const [overlaps, setOverlaps]     = useState([])
@@ -58,12 +76,15 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
     setError(null)
 
     try {
+      const roomPrefix = rooms.length ? `Rooms: ${rooms.join(', ')}\n` : ''
+      const fullNotes  = (roomPrefix + notes.trim()).trim() || null
+
       const payload = {
         guest_name: guestName.trim(),
         start_date: startDate,
         end_date: endDate,
         party_size: partySize,
-        notes: notes.trim() || null,
+        notes: fullNotes,
         status,
         booked_by: user.id,
       }
@@ -220,6 +241,43 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
               >
                 +
               </button>
+            </div>
+          </Field>
+
+          {/* Rooms */}
+          <Field label="Rooms to use (optional)">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {ROOM_OPTIONS.map((r) => {
+                const checked = rooms.includes(r.id)
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setRooms((prev) => checked ? prev.filter((x) => x !== r.id) : [...prev, r.id])}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '10px 14px', textAlign: 'left', width: '100%',
+                      border: `1.5px solid ${checked ? 'var(--color-teal)' : 'var(--color-border)'}`,
+                      borderRadius: 'var(--radius-sm)',
+                      background: checked ? 'var(--color-teal-xlight)' : 'var(--color-sand-50)',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    <div style={{
+                      width: 20, height: 20, borderRadius: '4px', flexShrink: 0,
+                      border: `1.5px solid ${checked ? 'var(--color-teal)' : 'var(--color-border)'}`,
+                      background: checked ? 'var(--color-teal)' : 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {checked && <span style={{ color: 'white', fontSize: '12px', lineHeight: 1 }}>✓</span>}
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-navy)', marginBottom: '1px', fontFamily: 'var(--font-body)' }}>{r.id}</p>
+                      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>{r.sub}</p>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           </Field>
 

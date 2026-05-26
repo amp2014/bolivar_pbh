@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
 const CATEGORIES = ['Appliances', 'Electronics', 'Furniture', 'Games', 'Kitchen', 'Linens', 'Outdoor', 'Other']
-const LOCATIONS  = ['Kitchen', 'Living Room', 'Master Bedroom', 'Bedroom 2', 'Bedroom 3', 'Bathroom', 'Patio', 'Garage', 'Laundry', 'Other']
+const LOCATIONS  = ['Kitchen', 'Living Room', 'Bedroom 1', 'Bedroom 2', 'Bedroom 3', 'Bathroom', 'Patio', 'Laundry', 'Other']
 
 export default function InventoryForm({ item = null, onSave, onClose }) {
   const [visible, setVisible] = useState(false)

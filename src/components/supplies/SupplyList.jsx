@@ -14,6 +14,7 @@ export default function SupplyList() {
   const [editId, setEditId]     = useState(null)
   const [saving, setSaving]     = useState(false)
   const [view, setView]         = useState('all') // 'all' | 'shopping'
+  const [search, setSearch]     = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editSupply, setEditSupply] = useState(null)
 
@@ -34,8 +35,12 @@ export default function SupplyList() {
     setEditId(null)
   }
 
-  const shopping  = supplies.filter((s) => s.status === 'low' || s.status === 'out')
-  const displayed = view === 'shopping' ? shopping : supplies
+  const shopping   = supplies.filter((s) => s.status === 'low' || s.status === 'out')
+  const viewBase   = view === 'shopping' ? shopping : supplies
+  const searchTerm = search.trim().toLowerCase()
+  const displayed  = searchTerm
+    ? viewBase.filter((s) => s.name.toLowerCase().includes(searchTerm) || s.category.toLowerCase().includes(searchTerm))
+    : viewBase
 
   const grouped = displayed.reduce((acc, s) => {
     acc[s.category] = acc[s.category] ?? []
@@ -45,6 +50,33 @@ export default function SupplyList() {
 
   return (
     <div>
+      {/* Search */}
+      <div style={{ position: 'relative', marginBottom: '10px' }}>
+        <span style={{ position: 'absolute', left: '13px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', pointerEvents: 'none', opacity: 0.5 }}>🔍</span>
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search supplies…"
+          style={{
+            width: '100%', height: '40px', paddingLeft: '38px', paddingRight: search ? '36px' : '12px',
+            borderRadius: 'var(--radius-full)', border: '1.5px solid var(--color-border)',
+            background: 'var(--color-sand-50)', fontFamily: 'var(--font-body)',
+            fontSize: '14px', color: 'var(--color-text)', outline: 'none', boxSizing: 'border-box',
+          }}
+        />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            style={{
+              position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--color-text-muted)', fontSize: '18px', lineHeight: 1, padding: 0,
+            }}
+          >×</button>
+        )}
+      </div>
+
       {/* View toggle + Add button */}
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
         <div style={{
@@ -96,7 +128,7 @@ export default function SupplyList() {
         <SkeletonList />
       ) : displayed.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 24px', color: 'var(--color-text-muted)', fontSize: '14px' }}>
-          {view === 'shopping' ? '🎉 Everything is stocked!' : 'No supplies found.'}
+          {searchTerm ? `No results for "${search}"` : view === 'shopping' ? '🎉 Everything is stocked!' : 'No supplies found.'}
         </div>
       ) : (
         Object.entries(grouped).map(([category, items]) => (

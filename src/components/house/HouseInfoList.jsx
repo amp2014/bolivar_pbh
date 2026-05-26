@@ -9,6 +9,15 @@ const SECTION_ICONS = {
   Rules:     '📋',
 }
 
+const HIDDEN_LABELS = ['A/C Filter Size', 'Max Occupancy']
+
+const ROOMS = [
+  { id: 'r1', name: 'Room 1',      beds: 'Queen bed',                   note: 'Pack-n-play fits' },
+  { id: 'r2', name: 'Room 2',      beds: 'Queen bed · Twin bunk beds',   note: null },
+  { id: 'r3', name: 'Room 3',      beds: '2 Queen beds · Twin bunk bed', note: null },
+  { id: 'lr', name: 'Living Room', beds: '2 sleeper couches',            note: null },
+]
+
 export default function HouseInfoList() {
   const { isFamily } = useAuth()
   const [items, setItems]     = useState([])
@@ -54,7 +63,9 @@ export default function HouseInfoList() {
     setEditVal('')
   }
 
-  const grouped = items.reduce((acc, i) => {
+  const visible = items.filter((i) => !HIDDEN_LABELS.includes(i.label))
+
+  const grouped = visible.reduce((acc, i) => {
     acc[i.section] = acc[i.section] ?? []
     acc[i.section].push(i)
     return acc
@@ -219,6 +230,48 @@ export default function HouseInfoList() {
           Tap <strong>Edit</strong> next to any value to update it.
         </p>
       )}
+
+      {/* Static Rooms section */}
+      <div style={{ marginBottom: '20px' }}>
+        <p style={{
+          fontSize: '11px', fontWeight: 700, letterSpacing: '0.8px',
+          textTransform: 'uppercase', color: 'var(--color-text-muted)',
+          marginBottom: '8px', fontFamily: 'var(--font-body)',
+        }}>
+          🛏 Rooms
+        </p>
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          {ROOMS.map((room, i) => (
+            <div
+              key={room.id}
+              style={{
+                padding: '12px 16px',
+                borderBottom: i < ROOMS.length - 1 ? '1px solid var(--color-border)' : 'none',
+                display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px',
+              }}
+            >
+              <div>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-navy)', marginBottom: '2px', fontFamily: 'var(--font-body)' }}>
+                  {room.name}
+                </p>
+                <p style={{ fontSize: '14px', color: 'var(--color-text)', fontFamily: 'var(--font-body)' }}>
+                  {room.beds}
+                </p>
+              </div>
+              {room.note && (
+                <span style={{
+                  fontSize: '11px', color: 'var(--color-teal)', background: 'var(--color-teal-xlight)',
+                  padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 600,
+                  whiteSpace: 'nowrap', flexShrink: 0, alignSelf: 'center',
+                  fontFamily: 'var(--font-body)',
+                }}>
+                  {room.note}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import BottomNav from './components/BottomNav'
+import ProfileButton from './components/ProfileButton'
 import ProtectedRoute from './components/ProtectedRoute'
 import AuthCallback from './pages/AuthCallback'
 import Login from './pages/Login'
@@ -12,6 +13,16 @@ import SupplyCheck from './pages/SupplyCheck'
 import Announcements from './pages/Announcements'
 import Emergency from './pages/Emergency'
 import Admin from './pages/Admin'
+
+function AppShell({ children }) {
+  return (
+    <>
+      {children}
+      <BottomNav />
+      <ProfileButton />
+    </>
+  )
+}
 
 export default function App() {
   return (
@@ -26,12 +37,12 @@ export default function App() {
 
           {/* Protected shell */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<><Home /><BottomNav /></>} />
-            <Route path="/stays" element={<><Stays /><BottomNav /></>} />
-            <Route path="/house" element={<><House /><BottomNav /></>} />
-            <Route path="/local" element={<><Local /><BottomNav /></>} />
-            <Route path="/announcements" element={<><Announcements /><BottomNav /></>} />
-            <Route path="/admin" element={<><Admin /><BottomNav /></>} />
+            <Route path="/" element={<AppShell><Home /></AppShell>} />
+            <Route path="/stays" element={<AppShell><Stays /></AppShell>} />
+            <Route path="/house" element={<AppShell><House /></AppShell>} />
+            <Route path="/local" element={<AppShell><Local /></AppShell>} />
+            <Route path="/announcements" element={<AppShell><Announcements /></AppShell>} />
+            <Route path="/admin" element={<AppShell><Admin /></AppShell>} />
           </Route>
         </Routes>
       </AuthProvider>

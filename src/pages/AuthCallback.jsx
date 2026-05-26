@@ -32,14 +32,17 @@ export default function AuthCallback() {
 
 async function upsertUser(user) {
   const { id, email, user_metadata } = user
-  await supabase.from('users').upsert(
-    {
-      id,
-      email,
-      display_name: user_metadata?.full_name ?? email,
-      avatar_url: user_metadata?.avatar_url ?? null,
-      // role defaults to 'guest' in DB — admin grants family/admin via admin panel
-    },
-    { onConflict: 'id', ignoreDuplicates: false }
-  )
+
+  // Check if user row exists so we only set role on first sign-in
+  const { data: existing } = await supabase.from('users').select('id').eq('id', id).maybeSingle()
+
+  const payload = {
+    id,
+    email,
+    display_name: user_metadata?.full_name ?? email,
+    avatar_url:   user_metadata?.avatar_url ?? null,
+    ...(existing ? {} : { role: 'family' }),
+  }
+
+  await supabase.from('users').upsert(payload, { onConflict: 'id', ignoreDuplicates: false })
 }
