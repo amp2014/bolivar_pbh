@@ -4,8 +4,6 @@ import { supabase } from '../lib/supabase'
 
 const MAX_BYTES = 25 * 1024 * 1024
 
-// ── Helpers ───────────────────────────────────────────────────
-
 function formatSize(bytes) {
   return bytes < 1024 * 1024
     ? `${(bytes / 1024).toFixed(1)} KB`
@@ -40,6 +38,25 @@ function xhrPut(url, file, onProgress, abortRef) {
   })
 }
 
+function isHeicFile(file) {
+  return (
+    file.type === 'image/heic' ||
+    file.type === 'image/heif' ||
+    /\.(heic|heif)$/i.test(file.name)
+  )
+}
+
+async function toJpeg(rawFile) {
+  const { default: heic2any } = await import('heic2any')
+  const result = await heic2any({ blob: rawFile, toType: 'image/jpeg', quality: 0.85 })
+  const blob = Array.isArray(result) ? result[0] : result
+  return new File(
+    [blob],
+    rawFile.name.replace(/\.(heic|heif)$/i, '.jpg'),
+    { type: 'image/jpeg' }
+  )
+}
+
 // ── Main component ────────────────────────────────────────────
 
 export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
@@ -48,12 +65,14 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
   const [files, setFiles]           = useState([])
   const [rejections, setRejections] = useState([])
   const [uploading, setUploading]   = useState(false)
+  const [converting, setConverting] = useState(false)
   const [dragging, setDragging]     = useState(false)
 
-  const inputRef   = useRef(null)
-  const filesRef   = useRef([])
-  const activeXhr  = useRef(null)
-  filesRef.current = files
+  const inputRef      = useRef(null)
+  const filesRef      = useRef([])
+  const activeXhr     = useRef(null)
+  const convertingRef = useRef(false)
+  filesRef.current    = files
 
   useEffect(() => () => {
     filesRef.current.forEach(f => URL.revokeObjectURL(f.preview))
@@ -62,12 +81,27 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
 
   // ── File management ────────────────────────────────────────
 
-  function addFiles(incoming) {
+  async function addFiles(incoming) {
+    if (convertingRef.current) return
+    convertingRef.current = true
+    setConverting(true)
+
     const bad = []
     const good = []
     const current = filesRef.current.length
 
-    for (const file of incoming) {
+    for (const rawFile of incoming) {
+      let file = rawFile
+
+      if (isHeicFile(rawFile)) {
+        try {
+          file = await toJpeg(rawFile)
+        } catch {
+          bad.push({ filename: rawFile.name, reason: 'Could not convert HEIC' })
+          continue
+        }
+      }
+
       if (!file.type.startsWith('image/')) {
         bad.push({ filename: file.name, reason: 'Not an image' })
       } else if (file.size > MAX_BYTES) {
@@ -80,7 +114,7 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
           file,
           preview: URL.createObjectURL(file),
           caption: '',
-          status: 'pending',   // pending | uploading | done | error
+          status: 'pending',
           progress: 0,
           error: null,
         })
@@ -89,6 +123,9 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
 
     if (bad.length)  setRejections(r => [...r, ...bad])
     if (good.length) setFiles(f => [...f, ...good])
+
+    convertingRef.current = false
+    setConverting(false)
   }
 
   function removeFile(id) {
@@ -120,7 +157,6 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
       ))
 
       try {
-        // a. Presigned URL
         const urlRes = await fetch('/api/get-upload-url', {
           method: 'POST',
           headers: {
@@ -130,18 +166,15 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
           body: JSON.stringify({
             filename: item.file.name,
             contentType: item.file.type,
-            uploaderId: profile?.id,
           }),
         })
         if (!urlRes.ok) throw new Error('Could not get upload URL')
         const { uploadUrl, r2Key, publicUrl } = await urlRes.json()
 
-        // b. PUT to R2 with progress
         await xhrPut(uploadUrl, item.file, (pct) => {
           setFiles(prev => prev.map(f => f.id === item.id ? { ...f, progress: pct } : f))
         }, activeXhr)
 
-        // c. Save metadata to Supabase
         const caption = filesRef.current.find(f => f.id === item.id)?.caption?.trim() || null
         const { error: dbErr } = await supabase.from('photos').insert({
           r2_key:        r2Key,
@@ -155,7 +188,6 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
         })
         if (dbErr) throw dbErr
 
-        // d. Mark done
         setFiles(prev => prev.map(f =>
           f.id === item.id ? { ...f, status: 'done', progress: 100 } : f
         ))
@@ -173,16 +205,12 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
     setUploading(false)
 
     if (allSucceeded) {
-      // Check all files (not just this batch) are done before completing
-      const allDone = filesRef.current.every(f => f.status === 'done')
-      if (allDone) {
-        setTimeout(() => {
-          filesRef.current.forEach(f => URL.revokeObjectURL(f.preview))
-          setFiles([])
-          setRejections([])
-          onUploadComplete?.()
-        }, 1000)
-      }
+      setTimeout(() => {
+        filesRef.current.forEach(f => URL.revokeObjectURL(f.preview))
+        setFiles([])
+        setRejections([])
+        onUploadComplete?.()
+      }, 800)
     }
   }
 
@@ -198,39 +226,43 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
   function onDrop(e) {
     e.preventDefault()
     setDragging(false)
+    if (convertingRef.current) return
     addFiles(Array.from(e.dataTransfer.files))
   }
 
   // ── Derived state ─────────────────────────────────────────
 
-  const pendingCount  = files.filter(f => f.status === 'pending').length
-  const doneCount     = files.filter(f => f.status === 'done').length
-  const canAddMore    = files.length < maxFiles && !uploading
+  const pendingCount = files.filter(f => f.status === 'pending').length
+  const doneCount    = files.filter(f => f.status === 'done').length
+  const canAddMore   = files.length < maxFiles && !uploading && !converting
+
+  const uploadDisabled = uploading || converting || pendingCount === 0
 
   // ── Render ────────────────────────────────────────────────
 
   return (
     <div>
       {/* Drop zone */}
-      {canAddMore && (
+      {(canAddMore || converting) && (
         <div
-          onClick={() => inputRef.current?.click()}
+          onClick={converting ? undefined : () => inputRef.current?.click()}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
           role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
+          tabIndex={converting ? -1 : 0}
+          onKeyDown={(e) => !converting && e.key === 'Enter' && inputRef.current?.click()}
           style={{
-            background:    dragging ? '#dff5f7' : '#F5EDD8',
-            border:        `2px dashed ${dragging ? '#1B6B8A' : '#4AABB5'}`,
-            borderRadius:  'var(--radius-md)',
-            padding:       '32px 16px',
-            textAlign:     'center',
-            cursor:        'pointer',
-            transition:    'background 0.15s, border-color 0.15s',
-            marginBottom:  files.length ? '16px' : 0,
-            userSelect:    'none',
+            background:   dragging ? '#dff5f7' : '#F5EDD8',
+            border:       `2px dashed ${dragging ? '#1B6B8A' : '#4AABB5'}`,
+            borderRadius: 'var(--radius-md)',
+            padding:      '32px 16px',
+            textAlign:    'center',
+            cursor:       converting ? 'default' : 'pointer',
+            opacity:      converting ? 0.8 : 1,
+            transition:   'background 0.15s, border-color 0.15s',
+            marginBottom: files.length ? '16px' : 0,
+            userSelect:   'none',
             WebkitTapHighlightColor: 'transparent',
           }}
         >
@@ -245,19 +277,30 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
               e.target.value = ''
             }}
           />
-          <div style={{ fontSize: '30px', marginBottom: '8px', lineHeight: 1 }}>📷</div>
-          <p style={{
-            fontSize: '15px', fontWeight: 600,
-            color: 'var(--color-navy)', marginBottom: '4px',
-          }}>
-            Tap to add photos
-          </p>
-          <p style={{
-            fontSize: '11px', color: 'var(--color-text-muted)',
-            fontFamily: 'var(--font-mono)', letterSpacing: '0.3px',
-          }}>
-            JPEG · PNG · HEIC · max 25 MB · up to {maxFiles} files
-          </p>
+
+          {converting ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '6px' }}>
+                <Spinner color="#4AABB5" />
+                <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-navy)', margin: 0 }}>
+                  Preparing images…
+                </p>
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', letterSpacing: '0.3px' }}>
+                CONVERTING HEIC → JPEG
+              </p>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: '30px', marginBottom: '8px', lineHeight: 1 }}>📷</div>
+              <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-navy)', marginBottom: '4px' }}>
+                Tap to add photos
+              </p>
+              <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', letterSpacing: '0.3px' }}>
+                JPEG · PNG · HEIC · max 25 MB · up to {maxFiles} files
+              </p>
+            </>
+          )}
         </div>
       )}
 
@@ -275,10 +318,7 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
                 padding: '7px 10px',
               }}
             >
-              <p style={{
-                fontSize: '11px', color: '#D4634A',
-                fontFamily: 'var(--font-mono)', lineHeight: 1.4,
-              }}>
+              <p style={{ fontSize: '11px', color: '#D4634A', fontFamily: 'var(--font-mono)', lineHeight: 1.4 }}>
                 {truncate(r.filename, 24)} — {r.reason}
               </p>
               <button
@@ -286,8 +326,7 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
                 style={{
                   background: 'none', border: 'none',
                   color: '#D4634A', cursor: 'pointer',
-                  fontSize: '16px', padding: '0 0 0 10px', lineHeight: 1,
-                  flexShrink: 0,
+                  fontSize: '16px', padding: '0 0 0 10px', lineHeight: 1, flexShrink: 0,
                 }}
               >
                 ×
@@ -299,12 +338,7 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
 
       {/* Preview grid */}
       {files.length > 0 && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '10px',
-          marginBottom: '16px',
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
           {files.map(item => (
             <FileCard
               key={item.id}
@@ -321,23 +355,25 @@ export default function PhotoUpload({ onUploadComplete, maxFiles = 10 }) {
       {files.length > 0 && (
         <button
           onClick={() => startUpload()}
-          disabled={uploading || pendingCount === 0}
+          disabled={uploadDisabled}
           style={{
             width: '100%', height: '48px',
-            background: uploading || pendingCount === 0 ? 'var(--color-sand-200)' : '#1B6B8A',
-            color:      uploading || pendingCount === 0 ? 'var(--color-text-muted)' : 'white',
+            background: uploadDisabled ? 'var(--color-sand-200)' : '#1B6B8A',
+            color:      uploadDisabled ? 'var(--color-text-muted)' : 'white',
             border:     'none',
             borderRadius: 'var(--radius-full)',
             fontSize:   '15px', fontWeight: 600,
             fontFamily: 'var(--font-body)',
-            cursor:     uploading || pendingCount === 0 ? 'not-allowed' : 'pointer',
+            cursor:     uploadDisabled ? 'not-allowed' : 'pointer',
             display:    'flex', alignItems: 'center', justifyContent: 'center',
             gap:        '8px',
             transition: 'background 0.2s, color 0.2s',
             WebkitTapHighlightColor: 'transparent',
           }}
         >
-          {uploading ? (
+          {converting ? (
+            'Preparing…'
+          ) : uploading ? (
             <><Spinner /> Uploading…</>
           ) : doneCount > 0 && pendingCount === 0 ? (
             `✓ ${doneCount} uploaded`
@@ -357,7 +393,6 @@ function FileCard({ item, onRemove, onCaptionChange, onRetry }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      {/* Thumbnail */}
       <div style={{
         position: 'relative', aspectRatio: '1',
         borderRadius: 'var(--radius-sm)', overflow: 'hidden',
@@ -369,53 +404,35 @@ function FileCard({ item, onRemove, onCaptionChange, onRetry }) {
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
 
-        {/* Upload progress overlay */}
         {status === 'uploading' && (
           <div style={{
-            position: 'absolute', inset: 0,
-            background: 'rgba(0,0,0,0.52)',
+            position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.52)',
             display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            gap: '6px', padding: '0 12px',
+            alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '0 12px',
           }}>
-            <div style={{
-              width: '100%', height: '5px',
-              background: '#E8F4F8', borderRadius: '3px', overflow: 'hidden',
-            }}>
-              <div style={{
-                height: '100%', background: '#1B6B8A',
-                width: `${progress}%`, transition: 'width 0.15s',
-                borderRadius: '3px',
-              }} />
+            <div style={{ width: '100%', height: '5px', background: '#E8F4F8', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: '#1B6B8A', width: `${progress}%`, transition: 'width 0.15s', borderRadius: '3px' }} />
             </div>
-            <span style={{
-              fontSize: '10px', color: 'white',
-              fontFamily: 'var(--font-mono)', letterSpacing: '0.3px',
-            }}>
+            <span style={{ fontSize: '10px', color: 'white', fontFamily: 'var(--font-mono)', letterSpacing: '0.3px' }}>
               {progress}%
             </span>
           </div>
         )}
 
-        {/* Success overlay */}
         {status === 'done' && (
           <div style={{
-            position: 'absolute', inset: 0,
-            background: 'rgba(21,87,36,0.62)',
+            position: 'absolute', inset: 0, background: 'rgba(21,87,36,0.62)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <span style={{ fontSize: '26px', color: 'white', fontWeight: 700 }}>✓</span>
           </div>
         )}
 
-        {/* Error overlay */}
         {status === 'error' && (
           <div style={{
-            position: 'absolute', inset: 0,
-            background: 'rgba(212,99,74,0.78)',
+            position: 'absolute', inset: 0, background: 'rgba(212,99,74,0.78)',
             display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            gap: '5px', padding: '6px',
+            alignItems: 'center', justifyContent: 'center', gap: '5px', padding: '6px',
           }}>
             <span style={{ fontSize: '18px' }}>⚠️</span>
             <button
@@ -433,7 +450,6 @@ function FileCard({ item, onRemove, onCaptionChange, onRetry }) {
           </div>
         )}
 
-        {/* Remove button — only when pending */}
         {status === 'pending' && (
           <button
             onClick={onRemove}
@@ -441,12 +457,10 @@ function FileCard({ item, onRemove, onCaptionChange, onRetry }) {
             style={{
               position: 'absolute', top: '4px', right: '4px',
               width: '22px', height: '22px', borderRadius: '50%',
-              background: 'rgba(0,0,0,0.55)',
-              color: 'white', border: 'none',
+              background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none',
               fontSize: '14px', lineHeight: 1,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-              WebkitTapHighlightColor: 'transparent',
+              cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
             }}
           >
             ×
@@ -454,24 +468,15 @@ function FileCard({ item, onRemove, onCaptionChange, onRetry }) {
         )}
       </div>
 
-      {/* Filename + size */}
       <div style={{ lineHeight: 1.3 }}>
-        <p style={{
-          fontSize: '10px', fontFamily: 'var(--font-mono)',
-          color: 'var(--color-text-muted)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
+        <p style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {truncate(file.name)}
         </p>
-        <p style={{
-          fontSize: '10px', fontFamily: 'var(--font-mono)',
-          color: 'var(--color-text-muted)',
-        }}>
+        <p style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
           {formatSize(file.size)}
         </p>
       </div>
 
-      {/* Caption input */}
       <input
         type="text"
         value={caption}
@@ -481,10 +486,8 @@ function FileCard({ item, onRemove, onCaptionChange, onRetry }) {
         onChange={(e) => onCaptionChange(e.target.value)}
         style={{
           width: '100%', fontSize: '11px',
-          fontFamily: 'var(--font-body)',
-          color: 'var(--color-text)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '6px',
+          fontFamily: 'var(--font-body)', color: 'var(--color-text)',
+          border: '1px solid var(--color-border)', borderRadius: '6px',
           padding: '5px 7px',
           background: status === 'done' ? 'var(--color-sand-100)' : 'white',
           outline: 'none', boxSizing: 'border-box',
@@ -496,15 +499,12 @@ function FileCard({ item, onRemove, onCaptionChange, onRetry }) {
 
 // ── Spinner ───────────────────────────────────────────────────
 
-function Spinner() {
+function Spinner({ color = 'white' }) {
   return (
-    <svg
-      width="16" height="16" viewBox="0 0 16 16"
-      style={{ animation: 'pbh-spin 0.75s linear infinite', flexShrink: 0 }}
-    >
+    <svg width="16" height="16" viewBox="0 0 16 16" style={{ animation: 'pbh-spin 0.75s linear infinite', flexShrink: 0 }}>
       <style>{`@keyframes pbh-spin { to { transform: rotate(360deg) } }`}</style>
-      <circle cx="8" cy="8" r="5.5" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2.2" />
-      <path d="M8 2.5a5.5 5.5 0 0 1 5.5 5.5" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
+      <circle cx="8" cy="8" r="5.5" fill="none" stroke={color === 'white' ? 'rgba(255,255,255,0.3)' : 'rgba(74,171,181,0.3)'} strokeWidth="2.2" />
+      <path d="M8 2.5a5.5 5.5 0 0 1 5.5 5.5" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
     </svg>
   )
 }
