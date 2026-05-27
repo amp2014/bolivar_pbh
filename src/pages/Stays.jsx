@@ -189,19 +189,24 @@ export default function Stays() {
                         }}
                       >
                         <td style={{ padding: '14px 16px' }}>
-                          <span style={{ fontWeight: 600, color: 'var(--color-navy)', fontFamily: 'var(--font-body)', fontSize: '14px' }}>
-                            {b.guest_name}
-                          </span>
-                          {isActive && (
-                            <span style={{
-                              marginLeft: '8px', fontSize: '10px', fontWeight: 700,
-                              color: 'var(--color-teal)', fontFamily: 'var(--font-mono)',
-                              background: 'white', borderRadius: '4px',
-                              padding: '2px 6px', letterSpacing: '0.5px',
-                            }}>
-                              HERE NOW
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--color-navy)', fontFamily: 'var(--font-body)', fontSize: '14px' }}>
+                              {b.guest_name}
                             </span>
-                          )}
+                            {isActive && (
+                              <span style={{
+                                fontSize: '10px', fontWeight: 700,
+                                color: 'var(--color-teal)', fontFamily: 'var(--font-mono)',
+                                background: 'white', borderRadius: '4px',
+                                padding: '2px 6px', letterSpacing: '0.5px',
+                              }}>
+                                HERE NOW
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '11px', marginTop: '3px', color: b.google_calendar_event_id ? 'var(--color-teal)' : 'var(--color-sand-400)' }}>
+                            {b.google_calendar_event_id ? '📅 Synced' : '📅 Not synced'}
+                          </div>
                         </td>
                         <td style={{ padding: '14px 16px', fontSize: '14px', color: 'var(--color-text)', fontFamily: 'var(--font-body)' }}>
                           {fmtDate(b.start_date)}

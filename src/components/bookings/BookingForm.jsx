@@ -49,6 +49,7 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
   const [overlaps, setOverlaps]     = useState([])
   const [saving, setSaving]         = useState(false)
   const [error, setError]           = useState(null)
+  const [syncWarning, setSyncWarning] = useState(null)
 
   const endRef = useRef(null)
 
@@ -76,6 +77,7 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
 
     setSaving(true)
     setError(null)
+    setSyncWarning(null)
 
     try {
       const roomPrefix = rooms.length ? `Rooms: ${rooms.join(', ')}\n` : ''
@@ -89,6 +91,8 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
         notes: fullNotes,
         status,
         booked_by: user.id,
+        // Only set on create — preserves original booker name on edits
+        ...(!booking?.id ? { booked_by_name: profile?.display_name ?? null } : {}),
       }
 
       let saved
@@ -131,6 +135,7 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
           }
         } catch (calErr) {
           console.warn('Calendar sync failed:', calErr.message)
+          setSyncWarning('Booking saved, but Google Calendar sync failed. Re-authorize and re-save to sync.')
         }
       }
 
@@ -380,6 +385,13 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
               )
             }
           </p>
+
+          {/* Sync warning */}
+          {syncWarning && (
+            <p style={{ fontSize: '13px', color: 'var(--color-sun)', marginBottom: '12px' }}>
+              ⚠️ {syncWarning}
+            </p>
+          )}
 
           {/* Error */}
           {error && (

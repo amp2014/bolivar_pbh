@@ -8,11 +8,52 @@ function gcalEnd(endDate) {
   return d.toISOString().split('T')[0]
 }
 
-function eventBody(booking) {
+function fmtTs(iso) {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (isNaN(d)) return null
+  return d.toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  })
+}
+
+// isEdit = false for new bookings, true for updates
+function eventBody(booking, isEdit = false) {
+  const guestCount = booking.party_size ?? 1
+  const statusLabel = booking.status === 'tentative' ? 'Tentative' : 'Confirmed'
+
+  // Title: [Name], [N] guests, [Confirmed/Tentative]
+  const summary = `${booking.guest_name}, ${guestCount} ${guestCount === 1 ? 'guest' : 'guests'}, ${statusLabel}`
+
+  // Parse rooms prefix from notes field: "Rooms: Room 1, Room 3\nfree-text"
+  const roomsMatch = booking.notes?.match(/^Rooms: ([^\n]+)\n?/)
+  const rooms = roomsMatch ? roomsMatch[1] : null
+  const cleanNotes = roomsMatch
+    ? booking.notes.slice(roomsMatch[0].length).trim()
+    : (booking.notes?.trim() ?? null)
+
+  const lines = []
+  if (rooms) lines.push(`Rooms: ${rooms}`)
+  lines.push(`Guests: ${guestCount}`)
+  if (booking.booked_by_name) lines.push(`Booked by: ${booking.booked_by_name}`)
+  const bookedTs = fmtTs(booking.created_at)
+  if (bookedTs) lines.push(`Booked: ${bookedTs}`)
+  if (isEdit) {
+    const editedTs = fmtTs(new Date().toISOString())
+    if (editedTs) lines.push(`Last edited: ${editedTs}`)
+    lines.push('\nEdited via the Beach House App')
+  } else {
+    lines.push('\nBooked via the Beach House App')
+  }
+  if (cleanNotes) lines.push(`Notes: ${cleanNotes}`)
+
   return {
-    summary: `${booking.guest_name} @ Bolivar Beach House`,
+    summary,
     location: '604 Nelson Ave, Bolivar, TX 77650',
-    description: booking.notes ?? undefined,
+    description: lines.join('\n'),
+    // Sets the visual style in Google Calendar (confirmed = solid, tentative = striped)
+    status: booking.status === 'tentative' ? 'tentative' : 'confirmed',
     start: { date: booking.start_date },
     end:   { date: gcalEnd(booking.end_date) },
   }
@@ -43,7 +84,7 @@ export async function createCalendarEvent(token, booking) {
   const data = await gcalFetch(
     token,
     `/calendars/${encodeURIComponent(CALENDAR_ID)}/events`,
-    { method: 'POST', body: JSON.stringify(eventBody(booking)) },
+    { method: 'POST', body: JSON.stringify(eventBody(booking, false)) },
   )
   return data?.id ?? null
 }
@@ -54,7 +95,7 @@ export async function updateCalendarEvent(token, eventId, booking) {
   return gcalFetch(
     token,
     `/calendars/${encodeURIComponent(CALENDAR_ID)}/events/${eventId}`,
-    { method: 'PATCH', body: JSON.stringify(eventBody(booking)) },
+    { method: 'PATCH', body: JSON.stringify(eventBody(booking, true)) },
   )
 }
 
