@@ -56,6 +56,16 @@
   --bp-wide:    1280px;
 }
 
+/* ── Animations ─────────────────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+/* ── Ferry page helpers ──────────────────────────────────────── */
+.x-card-link { transition: filter 0.15s ease; }
+.x-card-link:hover { filter: brightness(1.14); }
+
 /* ── Reset ──────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -158,24 +168,32 @@ button {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .app-content {
   flex: 1;
+  min-width: 0;        /* prevents flex child from overflowing parent */
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
   padding: 0 0 80px 0;
+  overflow-x: hidden;
 }
 
 @media (min-width: 1024px) {
   .app-shell {
     flex-direction: row;
+    height: 100vh;
+    overflow: hidden;
   }
   .app-content {
-    max-width: 100%;
-    padding: 24px 32px 24px 0;
+    max-width: none;
+    padding: 0;
     margin: 0;
+    overflow-y: auto;
+    height: 100vh;
   }
 }
 
@@ -212,12 +230,12 @@ button {
 
 /* ── Dashboard layout ───────────────────────────────────────── */
 .dashboard-wrapper {
-  padding: 16px 16px 0;
+  padding: 16px;
 }
 
 @media (min-width: 1024px) {
   .dashboard-wrapper {
-    padding: 24px 0 0;
+    padding: 24px;
   }
 }
 
@@ -225,6 +243,7 @@ button {
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
+  width: 100%;
 }
 
 @media (min-width: 1024px) {
@@ -239,7 +258,7 @@ button {
 .dashboard-col-right {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 /* Mobile: right col (weather/ferry) first */

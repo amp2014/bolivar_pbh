@@ -152,7 +152,7 @@ export default function Stays() {
     return (
       <main className="page" style={{ paddingTop: 0 }}>
         {pageHeader}
-        <div style={{ padding: '24px 16px 0', maxWidth: '900px' }}>
+        <div style={{ padding: '24px', maxWidth: '780px', margin: '0 auto' }}>
           {tabBar}
 
           {loading ? (

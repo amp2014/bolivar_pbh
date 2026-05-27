@@ -163,7 +163,7 @@ export default function Emergency() {
         </h1>
       </div>
 
-      <div style={{ padding: '16px 16px 0' }}>
+      <div style={{ maxWidth: '780px', margin: '0 auto', padding: '24px' }}>
 
         {/* 911 CTA — always full width */}
         <a href="tel:911" style={{

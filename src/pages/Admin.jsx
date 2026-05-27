@@ -52,7 +52,7 @@ export default function Admin() {
     return (
       <main className="page" style={{ paddingTop: 0 }}>
         {pageHeader}
-        <div style={{ display: 'flex', gap: '0', alignItems: 'flex-start', padding: '24px 16px 0' }}>
+        <div style={{ display: 'flex', gap: '0', alignItems: 'flex-start', padding: '24px' }}>
 
           {/* Left nav sidebar */}
           <div style={{ width: '180px', flexShrink: 0, paddingRight: '16px' }}>

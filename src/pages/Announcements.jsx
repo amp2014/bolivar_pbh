@@ -111,7 +111,7 @@ export default function Announcements() {
         </div>
       </div>
 
-      <div style={{ maxWidth: '700px', margin: '0 auto', padding: '20px 16px 0' }}>
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '24px' }}>
         {loading ? (
           <SkeletonList />
         ) : items.length === 0 ? (

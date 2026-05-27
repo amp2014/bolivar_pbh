@@ -36,7 +36,7 @@ export default function Local() {
     return (
       <main className="page" style={{ paddingTop: 0 }}>
         {header}
-        <div style={{ padding: '24px 16px 0' }}>
+        <div style={{ padding: '24px' }}>
 
           {/* Ferry — full width */}
           <section style={{ marginBottom: '32px' }}>

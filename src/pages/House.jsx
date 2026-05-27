@@ -57,7 +57,7 @@ export default function House() {
     return (
       <main className="page" style={{ paddingTop: 0 }}>
         {header}
-        <div style={{ padding: '24px 16px 0' }}>
+        <div style={{ padding: '24px' }}>
           <div className="page-grid-2">
 
             <div className="card">
