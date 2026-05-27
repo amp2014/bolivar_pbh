@@ -1,44 +1,104 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useLayout } from '../contexts/LayoutContext'
 import HouseInfoList from '../components/house/HouseInfoList'
 import SupplyList from '../components/supplies/SupplyList'
 import QRGenerator from '../components/supplies/QRGenerator'
 import InventoryList from '../components/inventory/InventoryList'
 import ProjectList from '../components/projects/ProjectList'
 
+function SectionHeading({ children }) {
+  return (
+    <p style={{
+      fontSize: '10px',
+      fontFamily: 'var(--font-mono)',
+      color: 'var(--color-text-muted)',
+      letterSpacing: '2px',
+      textTransform: 'uppercase',
+      fontWeight: 600,
+      marginBottom: '14px',
+    }}>
+      {children}
+    </p>
+  )
+}
+
+const header = (
+  <div style={{
+    background: 'linear-gradient(135deg, #1a3a5c 0%, #1e4d6b 55%, #1a5c6e 100%)',
+    padding: 'calc(var(--safe-top) + 28px) 20px 28px',
+    position: 'relative',
+    overflow: 'hidden',
+  }}>
+    <svg viewBox="0 0 375 60" preserveAspectRatio="none"
+      style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '60px', opacity: 0.10 }}>
+      <path d="M0 30 Q94 0 188 30 Q282 60 375 30 L375 60 L0 60 Z" fill="white" />
+    </svg>
+    <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '13px', fontFamily: 'var(--font-body)', marginBottom: '3px', position: 'relative' }}>
+      604 Nelson Ave
+    </p>
+    <h1 style={{ fontFamily: 'var(--font-display)', color: 'white', fontSize: '28px', fontWeight: 700, lineHeight: 1.15, position: 'relative' }}>
+      The House
+    </h1>
+  </div>
+)
+
 export default function House() {
   const { isAdmin } = useAuth()
+  const { isDesktop } = useLayout()
   const [section, setSection] = useState('Info')
 
   const tabs = isAdmin
     ? ['Info', 'Supplies', 'Inventory', 'Projects', 'QR Codes']
     : ['Info', 'Supplies', 'Inventory', 'Projects']
 
+  // ── Desktop: all sections in 2-column grid ──────────────────
+  if (isDesktop) {
+    return (
+      <main className="page" style={{ paddingTop: 0 }}>
+        {header}
+        <div style={{ padding: '24px 16px 0' }}>
+          <div className="page-grid-2">
+
+            <div className="card">
+              <SectionHeading>Info</SectionHeading>
+              <HouseInfoList />
+            </div>
+
+            <div className="card">
+              <SectionHeading>Supplies</SectionHeading>
+              <SupplyList />
+            </div>
+
+            <div className="card">
+              <SectionHeading>Inventory</SectionHeading>
+              <InventoryList />
+            </div>
+
+            <div className="card">
+              <SectionHeading>Projects</SectionHeading>
+              <ProjectList />
+            </div>
+
+            {isAdmin && (
+              <div className="card">
+                <SectionHeading>QR Codes</SectionHeading>
+                <QRGenerator />
+              </div>
+            )}
+
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  // ── Mobile: tab-based navigation ────────────────────────────
   return (
     <main className="page" style={{ paddingTop: 0 }}>
-
-      {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #1a3a5c 0%, #1e4d6b 55%, #1a5c6e 100%)',
-        padding: 'calc(var(--safe-top) + 28px) 20px 28px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        <svg viewBox="0 0 375 60" preserveAspectRatio="none"
-          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '60px', opacity: 0.10 }}>
-          <path d="M0 30 Q94 0 188 30 Q282 60 375 30 L375 60 L0 60 Z" fill="white" />
-        </svg>
-        <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '13px', fontFamily: 'var(--font-body)', marginBottom: '3px', position: 'relative' }}>
-          604 Nelson Ave
-        </p>
-        <h1 style={{ fontFamily: 'var(--font-display)', color: 'white', fontSize: '28px', fontWeight: 700, lineHeight: 1.15, position: 'relative' }}>
-          The House
-        </h1>
-      </div>
-
+      {header}
       <div className="page-inner" style={{ paddingTop: '16px' }}>
 
-        {/* Scrollable tab bar */}
         <div style={{
           display: 'flex', gap: '6px',
           overflowX: 'auto', marginBottom: '16px',

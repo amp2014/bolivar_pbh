@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useLayout } from '../contexts/LayoutContext'
 
 const BASE_TABS = [
   {
@@ -68,7 +69,10 @@ const ADMIN_TAB = {
 
 export default function BottomNav() {
   const { isAdmin } = useAuth()
+  const { isDesktop } = useLayout()
   const tabs = isAdmin ? [...BASE_TABS, ADMIN_TAB] : BASE_TABS
+
+  if (isDesktop) return null
 
   return (
     <nav style={{

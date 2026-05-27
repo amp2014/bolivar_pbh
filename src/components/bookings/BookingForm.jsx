@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { useLayout } from '../../contexts/LayoutContext'
 import { createCalendarEvent, updateCalendarEvent } from '../../lib/googleCalendar'
 
 const ROOM_OPTIONS = [
@@ -19,7 +20,8 @@ function parseNotesRooms(raw) {
 }
 
 export default function BookingForm({ booking = null, onSave, onClose }) {
-  const { user, profile, providerToken } = useAuth()
+  const { user, profile, providerToken, signInWithGoogle } = useAuth()
+  const { isDesktop } = useLayout()
 
   const parsedNotes = parseNotesRooms(booking?.notes ?? '')
 
@@ -104,21 +106,31 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
       if (providerToken) {
         try {
           const existingEventId = booking?.google_calendar_event_id ?? null
-          let eventId = existingEventId
+          let newEventId = null
 
           if (existingEventId) {
-            await updateCalendarEvent(providerToken, existingEventId, saved)
+            const updated = await updateCalendarEvent(providerToken, existingEventId, saved)
+            if (!updated) {
+              // Event was deleted directly in Google Calendar — recreate it
+              newEventId = await createCalendarEvent(providerToken, saved)
+            }
           } else {
-            eventId = await createCalendarEvent(providerToken, saved)
+            newEventId = await createCalendarEvent(providerToken, saved)
           }
 
-          if (eventId && eventId !== existingEventId) {
-            await supabase.from('bookings').update({ google_calendar_event_id: eventId }).eq('id', saved.id)
-            saved = { ...saved, google_calendar_event_id: eventId }
+          if (newEventId) {
+            const { error: calIdErr } = await supabase
+              .from('bookings')
+              .update({ google_calendar_event_id: newEventId })
+              .eq('id', saved.id)
+            if (calIdErr) {
+              console.warn('Calendar event created but ID could not be saved to DB:', calIdErr.message)
+            } else {
+              saved = { ...saved, google_calendar_event_id: newEventId }
+            }
           }
         } catch (calErr) {
           console.warn('Calendar sync failed:', calErr.message)
-          // Silently continue — booking is already saved
         }
       }
 
@@ -146,20 +158,24 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
 
       {/* Sheet */}
       <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
+        position: 'fixed',
+        ...(isDesktop
+          ? { top: '50%', left: '50%', right: 'auto', bottom: 'auto', maxWidth: '560px', width: 'calc(100% - 32px)', borderRadius: '16px', transform: visible ? 'translate(-50%, -50%)' : 'translate(-50%, calc(-50% + 24px))', opacity: visible ? 1 : 0 }
+          : { bottom: 0, left: 0, right: 0, borderRadius: '20px 20px 0 0', transform: visible ? 'translateY(0)' : 'translateY(100%)' }
+        ),
         background: 'white',
-        borderRadius: '20px 20px 0 0',
         zIndex: 201,
-        maxHeight: '92dvh',
+        maxHeight: isDesktop ? '90dvh' : '92dvh',
         display: 'flex',
         flexDirection: 'column',
-        transform: visible ? 'translateY(0)' : 'translateY(100%)',
-        transition: 'transform 0.32s cubic-bezier(0.16,1,0.3,1)',
+        transition: 'transform 0.32s cubic-bezier(0.16,1,0.3,1), opacity 0.32s',
       }}>
-        {/* Drag handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-sand-200)' }} />
-        </div>
+        {/* Drag handle — mobile only */}
+        {!isDesktop && (
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-sand-200)' }} />
+          </div>
+        )}
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 20px 16px' }}>
@@ -345,7 +361,24 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
           <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
             {providerToken
               ? '📅 Will sync to your Google Calendar on save.'
-              : '📅 Sign out and back in to enable Google Calendar sync.'}
+              : (
+                <>
+                  📅 Calendar token expired.{' '}
+                  <button
+                    type="button"
+                    onClick={signInWithGoogle}
+                    style={{
+                      color: 'var(--color-teal)', background: 'none', border: 'none',
+                      cursor: 'pointer', fontFamily: 'var(--font-body)',
+                      fontSize: '12px', fontWeight: 600, padding: 0,
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    Re-authorize →
+                  </button>
+                </>
+              )
+            }
           </p>
 
           {/* Error */}
@@ -357,7 +390,7 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
         </div>
 
         {/* Save button */}
-        <div style={{ padding: '12px 20px', paddingBottom: 'calc(12px + var(--safe-bottom))' }}>
+        <div style={{ padding: '12px 20px', paddingBottom: isDesktop ? '20px' : 'calc(12px + var(--safe-bottom))' }}>
           <button
             onClick={handleSave}
             disabled={saving}

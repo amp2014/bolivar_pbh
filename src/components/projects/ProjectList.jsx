@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { useLayout } from '../../contexts/LayoutContext'
 import ProjectForm from './ProjectForm'
 
 const PRIORITY_META = {
@@ -25,6 +26,7 @@ function formatDue(dateStr) {
 
 export default function ProjectList() {
   const { isFamily } = useAuth()
+  const { isDesktop } = useLayout()
   const [projects, setProjects]   = useState([])
   const [loading, setLoading]     = useState(true)
   const [tab, setTab]             = useState('Open')
@@ -129,6 +131,62 @@ export default function ProjectList() {
         <SkeletonList />
       ) : filtered.length === 0 ? (
         <EmptyState tab={tab} onAdd={isFamily ? () => { setEditProject(null); setShowForm(true) } : null} />
+      ) : isDesktop ? (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                {['Title', 'Priority', 'Status', 'Claimed by', 'Due', ''].map((h) => (
+                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 600, background: 'var(--color-sand-50)' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((project, i) => {
+                const pMeta = PRIORITY_META[project.priority] ?? PRIORITY_META.medium
+                const isDone = project.status === 'done'
+                const due = project.due_date ? formatDue(project.due_date) : null
+                return (
+                  <tr key={project.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--color-border)' : 'none', opacity: isDone ? 0.7 : 1 }}>
+                    <td style={{ padding: '12px 16px', fontFamily: 'var(--font-body)' }}>
+                      <p style={{ fontSize: '14px', fontWeight: 500, color: isDone ? 'var(--color-text-muted)' : 'var(--color-navy)', textDecoration: isDone ? 'line-through' : 'none' }}>{project.title}</p>
+                      {project.category && <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '1px' }}>{project.category}</p>}
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      {!isDone && <span style={{ padding: '2px 8px', borderRadius: 'var(--radius-full)', background: pMeta.bg, color: pMeta.color, fontSize: '10px', fontWeight: 700 }}>{pMeta.label}</span>}
+                      {isDone && <span style={{ fontSize: '14px' }}>✓</span>}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)', textTransform: 'capitalize' }}>{project.status.replace('_', ' ')}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>{project.assigned_to ?? '—'}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '12px', fontFamily: 'var(--font-body)', color: due?.overdue ? 'var(--color-coral)' : 'var(--color-text-muted)', fontWeight: due?.overdue ? 600 : 400, whiteSpace: 'nowrap' }}>{due ? due.text : '—'}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {isFamily && (
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          {!isDone && (
+                            <button onClick={() => markDone(project)} disabled={marking === project.id} style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-teal)', background: 'none', border: '1px solid var(--color-teal)', borderRadius: 'var(--radius-sm)', padding: '4px 10px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                              {marking === project.id ? '…' : '✓ Done'}
+                            </button>
+                          )}
+                          <button onClick={() => { setEditProject(project); setShowForm(true) }} style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-navy)', background: 'none', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '4px 12px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Edit</button>
+                          <button onClick={() => setConfirmDel(project.id)} style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-coral)', background: 'none', border: '1px solid var(--color-coral)', borderRadius: 'var(--radius-sm)', padding: '4px 12px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Delete</button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          {confirmDel && (
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--color-sand-50)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', flex: 1 }}>Remove this project?</span>
+              <button onClick={() => handleDelete(confirmDel)} style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-coral)', background: 'none', border: 'none', cursor: 'pointer', minHeight: '32px' }}>Delete</button>
+              <button onClick={() => setConfirmDel(null)} style={{ fontSize: '13px', color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', minHeight: '32px' }}>Cancel</button>
+            </div>
+          )}
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {filtered.map((project) => {

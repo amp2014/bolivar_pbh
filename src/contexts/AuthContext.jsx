@@ -45,6 +45,26 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  // When the cached Google token is about to expire, try a silent Supabase session
+  // refresh — if Supabase has a stored provider_refresh_token it will return a new
+  // provider_token and we can extend the sync window without any user action.
+  useEffect(() => {
+    const exp = parseInt(localStorage.getItem(GCAL_EXP_KEY) || '0', 10)
+    if (!exp || !session) return
+    const msUntilExpiry = exp - Date.now()
+    if (msUntilExpiry <= 0) return
+
+    const timer = setTimeout(async () => {
+      const { data } = await supabase.auth.refreshSession()
+      if (data.session?.provider_token) {
+        cacheProviderToken(data.session.provider_token)
+        setSession(data.session)
+      }
+    }, msUntilExpiry)
+
+    return () => clearTimeout(timer)
+  }, [session])
+
   async function fetchProfile(userId) {
     const { data } = await supabase
       .from('users')

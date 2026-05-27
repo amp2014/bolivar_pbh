@@ -11,13 +11,15 @@ const CATEGORY_ICONS = {
   'House Contacts':     '🏠',
 }
 
-const CATEGORY_ORDER = ['Emergency Services', 'Medical', 'Utilities', 'House Contacts']
+// Left column: primary contacts · Right column: nearby services
+const LEFT_CATEGORIES  = ['Emergency Services', 'House Contacts']
+const RIGHT_CATEGORIES = ['Medical', 'Utilities']
 
 export default function Emergency() {
   const navigate = useNavigate()
   const { isFamily } = useAuth()
-  const [items, setItems]     = useState([])
-  const [loading, setLoading] = useState(true)
+  const [items, setItems]       = useState([])
+  const [loading, setLoading]   = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState(null)
 
@@ -40,7 +42,90 @@ export default function Emergency() {
     return acc
   }, {})
 
-  const orderedCategories = CATEGORY_ORDER.filter((c) => grouped[c])
+  function renderCategory(category) {
+    if (!grouped[category]) return null
+    return (
+      <div key={category} style={{ marginBottom: '20px' }}>
+        <p style={{
+          fontSize: '11px', fontWeight: 700, letterSpacing: '0.8px',
+          textTransform: 'uppercase', color: 'var(--color-text-muted)',
+          marginBottom: '8px', fontFamily: 'var(--font-body)',
+        }}>
+          {CATEGORY_ICONS[category] ?? '📌'} {category}
+        </p>
+
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          {grouped[category].map((item, i) => {
+            const isLast = i === grouped[category].length - 1
+            return (
+              <div
+                key={item.id}
+                style={{
+                  padding: '12px 16px',
+                  borderBottom: isLast ? 'none' : '1px solid var(--color-border)',
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between', gap: '12px',
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{
+                    fontSize: '14px', fontWeight: 600, color: 'var(--color-navy)',
+                    fontFamily: 'var(--font-body)',
+                    marginBottom: item.notes ? '2px' : 0,
+                  }}>
+                    {item.name}
+                  </p>
+                  {item.notes && (
+                    <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>
+                      {item.notes}
+                    </p>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  {isFamily && (
+                    <button
+                      onClick={() => { setEditItem(item); setShowForm(true) }}
+                      style={{
+                        fontSize: '11px', fontWeight: 600,
+                        color: 'var(--color-text-muted)',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        padding: '2px 0', fontFamily: 'var(--font-body)',
+                      }}
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {item.phone ? (
+                    <a
+                      href={`tel:${item.phone}`}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center',
+                        height: '34px', padding: '0 12px',
+                        background: 'var(--color-teal-xlight)',
+                        color: 'var(--color-teal)',
+                        borderRadius: 'var(--radius-full)',
+                        textDecoration: 'none',
+                        fontSize: '13px', fontWeight: 600,
+                        fontFamily: 'var(--font-mono)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {item.phone}
+                    </a>
+                  ) : (
+                    <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                      {isFamily ? 'Tap Edit to add' : 'No number'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <main className="page" style={{ paddingTop: 0 }}>
@@ -56,8 +141,6 @@ export default function Emergency() {
           style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '60px', opacity: 0.10 }}>
           <path d="M0 30 Q94 0 188 30 Q282 60 375 30 L375 60 L0 60 Z" fill="white" />
         </svg>
-
-        {/* Back button */}
         <button
           onClick={() => navigate(-1)}
           style={{
@@ -72,7 +155,6 @@ export default function Emergency() {
         >
           ‹
         </button>
-
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '13px', fontFamily: 'var(--font-body)', marginBottom: '3px', position: 'relative' }}>
           604 Nelson Ave
         </p>
@@ -81,9 +163,9 @@ export default function Emergency() {
         </h1>
       </div>
 
-      <div className="page-inner" style={{ paddingTop: '16px' }}>
+      <div style={{ padding: '16px 16px 0' }}>
 
-        {/* 911 CTA — always at top */}
+        {/* 911 CTA — always full width */}
         <a href="tel:911" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           gap: '10px', height: '60px', borderRadius: 'var(--radius-md)',
@@ -99,87 +181,15 @@ export default function Emergency() {
         {loading ? (
           <SkeletonList />
         ) : (
-          orderedCategories.map((category) => (
-            <div key={category} style={{ marginBottom: '20px' }}>
-              <p style={{
-                fontSize: '11px', fontWeight: 700, letterSpacing: '0.8px',
-                textTransform: 'uppercase', color: 'var(--color-text-muted)',
-                marginBottom: '8px', fontFamily: 'var(--font-body)',
-              }}>
-                {CATEGORY_ICONS[category] ?? '📌'} {category}
-              </p>
-
-              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                {grouped[category].map((item, i) => {
-                  const isLast = i === grouped[category].length - 1
-                  return (
-                    <div
-                      key={item.id}
-                      style={{
-                        padding: '12px 16px',
-                        borderBottom: isLast ? 'none' : '1px solid var(--color-border)',
-                        display: 'flex', alignItems: 'center',
-                        justifyContent: 'space-between', gap: '12px',
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{
-                          fontSize: '14px', fontWeight: 600, color: 'var(--color-navy)',
-                          fontFamily: 'var(--font-body)',
-                          marginBottom: item.notes ? '2px' : 0,
-                        }}>
-                          {item.name}
-                        </p>
-                        {item.notes && (
-                          <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>
-                            {item.notes}
-                          </p>
-                        )}
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                        {isFamily && (
-                          <button
-                            onClick={() => { setEditItem(item); setShowForm(true) }}
-                            style={{
-                              fontSize: '11px', fontWeight: 600,
-                              color: 'var(--color-text-muted)',
-                              background: 'none', border: 'none', cursor: 'pointer',
-                              padding: '2px 0', fontFamily: 'var(--font-body)',
-                            }}
-                          >
-                            Edit
-                          </button>
-                        )}
-                        {item.phone ? (
-                          <a
-                            href={`tel:${item.phone}`}
-                            style={{
-                              display: 'inline-flex', alignItems: 'center',
-                              height: '34px', padding: '0 12px',
-                              background: 'var(--color-teal-xlight)',
-                              color: 'var(--color-teal)',
-                              borderRadius: 'var(--radius-full)',
-                              textDecoration: 'none',
-                              fontSize: '13px', fontWeight: 600,
-                              fontFamily: 'var(--font-mono)',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {item.phone}
-                          </a>
-                        ) : (
-                          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-                            {isFamily ? 'Tap Edit to add' : 'No number'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+          /* Two columns at 640px+: contacts left, services right */
+          <div className="page-grid-2" style={{ alignItems: 'start' }}>
+            <div>
+              {LEFT_CATEGORIES.map(renderCategory)}
             </div>
-          ))
+            <div>
+              {RIGHT_CATEGORIES.map(renderCategory)}
+            </div>
+          </div>
         )}
 
         {isFamily && !loading && (
@@ -214,25 +224,29 @@ export default function Emergency() {
 
 function SkeletonList() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {[2, 2, 2, 3].map((count, si) => (
-        <div key={si}>
-          <div style={{ height: 11, width: '22%', background: 'var(--color-sand-100)', borderRadius: 4, marginBottom: 8 }} />
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            {Array.from({ length: count }).map((_, i) => (
-              <div key={i} style={{
-                padding: '12px 16px',
-                borderBottom: i < count - 1 ? '1px solid var(--color-border)' : 'none',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}>
-                <div>
-                  <div style={{ height: 13, width: '130px', background: 'var(--color-sand-100)', borderRadius: 3, marginBottom: 5 }} />
-                  <div style={{ height: 10, width: '90px', background: 'var(--color-sand-100)', borderRadius: 3 }} />
-                </div>
-                <div style={{ height: 34, width: '110px', background: 'var(--color-sand-100)', borderRadius: 20 }} />
+    <div className="page-grid-2" style={{ alignItems: 'start' }}>
+      {[0, 1].map((col) => (
+        <div key={col} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {[2, 2].map((count, si) => (
+            <div key={si}>
+              <div style={{ height: 11, width: '22%', background: 'var(--color-sand-100)', borderRadius: 4, marginBottom: 8 }} />
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                {Array.from({ length: count }).map((_, i) => (
+                  <div key={i} style={{
+                    padding: '12px 16px',
+                    borderBottom: i < count - 1 ? '1px solid var(--color-border)' : 'none',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}>
+                    <div>
+                      <div style={{ height: 13, width: '130px', background: 'var(--color-sand-100)', borderRadius: 3, marginBottom: 5 }} />
+                      <div style={{ height: 10, width: '90px', background: 'var(--color-sand-100)', borderRadius: 3 }} />
+                    </div>
+                    <div style={{ height: 34, width: '110px', background: 'var(--color-sand-100)', borderRadius: 20 }} />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       ))}
     </div>

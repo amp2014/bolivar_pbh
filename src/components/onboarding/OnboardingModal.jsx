@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { useLayout } from '../../contexts/LayoutContext'
 import { usePWAInstall } from '../../hooks/usePWAInstall'
 
 const TOTAL_STEPS = 3
 
 export default function OnboardingModal({ onComplete }) {
   const { user, profile } = useAuth()
+  const { isDesktop } = useLayout()
   const { isInstalled, isIOS, canPrompt, promptInstall } = usePWAInstall()
 
   const [visible,     setVisible]     = useState(false)
@@ -50,6 +52,71 @@ export default function OnboardingModal({ onComplete }) {
   const initials  = (profile?.display_name ?? '?')
     .split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
 
+  const progressDots = (
+    <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', paddingTop: isDesktop ? '16px' : 'calc(var(--safe-top) + 16px)', paddingBottom: '4px' }}>
+      {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+        <div key={i} style={{
+          width: i + 1 === step ? 20 : 6, height: 6, borderRadius: 3,
+          background: i + 1 === step ? 'var(--color-navy)' : 'var(--color-sand-200)',
+          transition: 'width 0.3s, background 0.3s',
+        }} />
+      ))}
+    </div>
+  )
+
+  const stepContent = (
+    <div style={{ flex: 1, opacity: fadeOut ? 0 : 1, transition: 'opacity 0.18s', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+      {step === 1 && <StepWelcome avatarUrl={avatarUrl} initials={initials} profile={profile} />}
+      {step === 2 && <StepName displayName={displayName} setDisplayName={setDisplayName} />}
+      {step === 3 && <StepInstall isInstalled={installed} isIOS={isIOS} canPrompt={canPrompt} onInstall={handleInstall} />}
+    </div>
+  )
+
+  const navButtons = (
+    <div style={{
+      padding: '12px 24px',
+      paddingBottom: isDesktop ? '20px' : 'calc(12px + var(--safe-bottom))',
+      display: 'flex', gap: '10px',
+      borderTop: '1px solid var(--color-border)',
+      background: 'white',
+    }}>
+      {step > 1 && (
+        <button onClick={() => navigate(step - 1)} style={{ height: '52px', padding: '0 20px', border: '1.5px solid var(--color-border)', borderRadius: 'var(--radius-md)', background: 'none', color: 'var(--color-text-muted)', fontSize: '15px', fontFamily: 'var(--font-body)', cursor: 'pointer', flexShrink: 0 }}>
+          ← Back
+        </button>
+      )}
+      {step < TOTAL_STEPS ? (
+        <button onClick={() => navigate(step + 1)} disabled={step === 2 && !displayName.trim()} className="btn btn-primary" style={{ flex: 1, height: '52px', fontSize: '16px', fontWeight: 600 }}>
+          Continue →
+        </button>
+      ) : (
+        <button onClick={finish} disabled={saving} className="btn btn-primary" style={{ flex: 1, height: '52px', fontSize: '16px', fontWeight: 600 }}>
+          {saving ? 'Setting up…' : "Let's go →"}
+        </button>
+      )}
+    </div>
+  )
+
+  if (isDesktop) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+        <div style={{
+          background: 'var(--color-bg)', borderRadius: '20px',
+          width: 'min(500px, calc(100vw - 32px))', maxHeight: '90dvh',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'scale(1)' : 'scale(0.95)',
+          transition: 'opacity 0.35s, transform 0.35s cubic-bezier(0.16,1,0.3,1)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
+        }}>
+          {progressDots}
+          {stepContent}
+          {navButtons}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{
       position: 'fixed', inset: 0,
@@ -60,88 +127,9 @@ export default function OnboardingModal({ onComplete }) {
       transform: visible ? 'scale(1)' : 'scale(0.97)',
       transition: 'opacity 0.35s, transform 0.35s cubic-bezier(0.16,1,0.3,1)',
     }}>
-
-      {/* Progress dots */}
-      <div style={{
-        display: 'flex', justifyContent: 'center', gap: '6px',
-        paddingTop: 'calc(var(--safe-top) + 16px)',
-        paddingBottom: '4px',
-      }}>
-        {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-          <div key={i} style={{
-            width: i + 1 === step ? 20 : 6,
-            height: 6,
-            borderRadius: 3,
-            background: i + 1 === step ? 'var(--color-navy)' : 'var(--color-sand-200)',
-            transition: 'width 0.3s, background 0.3s',
-          }} />
-        ))}
-      </div>
-
-      {/* Step content */}
-      <div style={{
-        flex: 1,
-        opacity: fadeOut ? 0 : 1,
-        transition: 'opacity 0.18s',
-        display: 'flex', flexDirection: 'column',
-        overflowY: 'auto',
-      }}>
-        {step === 1 && <StepWelcome avatarUrl={avatarUrl} initials={initials} profile={profile} />}
-        {step === 2 && <StepName displayName={displayName} setDisplayName={setDisplayName} />}
-        {step === 3 && (
-          <StepInstall
-            isInstalled={installed}
-            isIOS={isIOS}
-            canPrompt={canPrompt}
-            onInstall={handleInstall}
-          />
-        )}
-      </div>
-
-      {/* Bottom nav buttons */}
-      <div style={{
-        padding: '12px 24px',
-        paddingBottom: 'calc(12px + var(--safe-bottom))',
-        display: 'flex', gap: '10px',
-        borderTop: '1px solid var(--color-border)',
-        background: 'white',
-      }}>
-        {step > 1 && (
-          <button
-            onClick={() => navigate(step - 1)}
-            style={{
-              height: '52px', padding: '0 20px',
-              border: '1.5px solid var(--color-border)',
-              borderRadius: 'var(--radius-md)',
-              background: 'none', color: 'var(--color-text-muted)',
-              fontSize: '15px', fontFamily: 'var(--font-body)',
-              cursor: 'pointer', flexShrink: 0,
-            }}
-          >
-            ← Back
-          </button>
-        )}
-
-        {step < TOTAL_STEPS ? (
-          <button
-            onClick={() => navigate(step + 1)}
-            disabled={step === 2 && !displayName.trim()}
-            className="btn btn-primary"
-            style={{ flex: 1, height: '52px', fontSize: '16px', fontWeight: 600 }}
-          >
-            Continue →
-          </button>
-        ) : (
-          <button
-            onClick={finish}
-            disabled={saving}
-            className="btn btn-primary"
-            style={{ flex: 1, height: '52px', fontSize: '16px', fontWeight: 600 }}
-          >
-            {saving ? 'Setting up…' : "Let's go →"}
-          </button>
-        )}
-      </div>
+      {progressDots}
+      {stepContent}
+      {navButtons}
     </div>
   )
 }

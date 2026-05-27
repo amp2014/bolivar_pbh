@@ -2,8 +2,47 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 
+// V2: migrate to procedures table with (procedure_id, step_order, step_text)
+const PROCEDURES = [
+  {
+    id: 'arriving',
+    title: 'Arriving at the House',
+    icon: '🏠',
+    steps: [
+      { n: 1,  text: 'Turn on breakers with yellow tags (breaker panel is near the refrigerator)' },
+      { n: 2,  text: 'Turn on main room AC unit with remote (green cover remote, usually on kitchen table)' },
+      { n: 3,  text: 'Turn on AC units in occupied bedrooms only' },
+      { n: 4,  text: 'Place cushions out on porch swings and chairs' },
+      { n: 5,  text: 'Fill ice maker with water and turn on' },
+      { n: 6,  text: 'Lamps in main room: touch to turn on or off' },
+    ],
+  },
+  {
+    id: 'leaving',
+    title: 'Leaving the House',
+    icon: '🚪',
+    steps: [
+      { n: 1,  text: 'Bring in porch cushions (and milkman if it is outside)' },
+      { n: 2,  text: 'Remove dirty sheets, place in laundry baskets' },
+      { n: 3,  text: 'Check washer and dryer for laundry inside' },
+      { n: 4,  text: 'Place clean sheets on beds (sheets are stored under beds in containers)' },
+      { n: 5,  text: 'Close all blinds' },
+      { n: 6,  text: 'Unplug ice maker and drain water' },
+      { n: 7,  text: 'Dispose of charcoal in burn barrel (back yard)' },
+      { n: 8,  text: 'Turn off bathroom exhaust fan' },
+      { n: 9,  text: 'Turn off all AC units' },
+      { n: 10, text: 'Turn off yellow-tagged breakers' },
+      { n: 11, text: 'Turn off all lights (inside and outside)' },
+      { n: 12, text: 'Remove all garbage' },
+      { n: 13, text: 'Lock porch closet with padlock' },
+      { n: 14, text: 'Lock house door — pull slightly to allow it to lock (tension creates a better seal)' },
+    ],
+  },
+]
+
 const SECTION_ICONS = {
   Access:    '🔑',
+  Devices:   '🔌',
   WiFi:      '📶',
   Utilities: '⚡',
   Rules:     '📋',
@@ -22,8 +61,9 @@ export default function HouseInfoList() {
   const { isFamily } = useAuth()
   const [items, setItems]     = useState([])
   const [loading, setLoading] = useState(true)
-  const [revealed, setRevealed] = useState({})   // { [id]: bool }
-  const [editing, setEditing]   = useState(null) // id being edited
+  const [revealed, setRevealed] = useState({})
+  const [editing, setEditing]   = useState(null)
+  const [procOpen, setProcOpen] = useState({ arriving: true, leaving: true })
   const [editVal, setEditVal]   = useState('')
   const [saving, setSaving]     = useState(false)
   const inputRef = useRef(null)
@@ -270,6 +310,82 @@ export default function HouseInfoList() {
               )}
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Procedures section */}
+      <div style={{ marginBottom: '20px' }}>
+        <p style={{
+          fontSize: '11px', fontWeight: 700, letterSpacing: '0.8px',
+          textTransform: 'uppercase', color: 'var(--color-text-muted)',
+          marginBottom: '8px', fontFamily: 'var(--font-body)',
+        }}>
+          📋 Procedures
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {PROCEDURES.map((proc) => {
+            const isOpen = procOpen[proc.id]
+            return (
+              <div
+                key={proc.id}
+                className="card"
+                style={{ padding: 0, overflow: 'hidden', borderLeft: '3px solid var(--color-teal)' }}
+              >
+                <button
+                  onClick={() => setProcOpen((s) => ({ ...s, [proc.id]: !s[proc.id] }))}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center',
+                    justifyContent: 'space-between', gap: '8px',
+                    padding: '12px 16px', background: 'none', border: 'none',
+                    cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  <p style={{
+                    fontFamily: 'var(--font-body)', fontSize: '15px',
+                    fontWeight: 600, color: 'var(--color-navy)', margin: 0,
+                  }}>
+                    {proc.icon} {proc.title}
+                  </p>
+                  <span style={{
+                    color: 'var(--color-text-muted)', fontSize: '12px',
+                    flexShrink: 0, display: 'inline-block',
+                    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s',
+                  }}>▾</span>
+                </button>
+
+                {isOpen && (
+                  <div style={{ borderTop: '1px solid var(--color-border)', padding: '12px 16px 14px' }}>
+                    {proc.steps.map((step, i) => (
+                      <div
+                        key={step.n}
+                        style={{
+                          display: 'flex', gap: '10px', alignItems: 'flex-start',
+                          marginBottom: i < proc.steps.length - 1 ? '10px' : 0,
+                        }}
+                      >
+                        <span style={{
+                          flexShrink: 0, width: '22px', height: '22px',
+                          borderRadius: '50%', background: 'var(--color-teal-xlight)',
+                          color: 'var(--color-teal)', fontSize: '11px', fontWeight: 700,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontFamily: 'var(--font-mono)', marginTop: '1px',
+                        }}>
+                          {step.n}
+                        </span>
+                        <p style={{
+                          fontFamily: 'var(--font-body)', fontSize: '14px',
+                          color: 'var(--color-text)', lineHeight: 1.45, margin: 0,
+                        }}>
+                          {step.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

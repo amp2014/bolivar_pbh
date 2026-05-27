@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useLayout } from '../contexts/LayoutContext'
 import PhotoUpload from '../components/PhotoUpload'
 import Lightbox from '../components/Lightbox'
 
@@ -23,6 +24,7 @@ async function fetchPage(offset = 0, { from = '', to = '', uploaderId = '' } = {
 // ── Default export: Photos page ──────────────────────────────────
 
 export default function Photos() {
+  const { isDesktop } = useLayout()
   const [photos, setPhotos]               = useState([])
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState(false)
@@ -119,17 +121,18 @@ export default function Photos() {
           grid-template-columns: repeat(3, 1fr);
           gap: 4px;
         }
-        @media (min-width: 640px) {
-          .pbh-photos-grid { grid-template-columns: repeat(4, 1fr); }
-        }
+        @media (min-width: 640px)  { .pbh-photos-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 1024px) { .pbh-photos-grid { grid-template-columns: repeat(5, 1fr); } }
+        @media (min-width: 1280px) { .pbh-photos-grid { grid-template-columns: repeat(6, 1fr); } }
+
         .pbh-skel-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 4px;
         }
-        @media (min-width: 640px) {
-          .pbh-skel-grid { grid-template-columns: repeat(4, 1fr); }
-        }
+        @media (min-width: 640px)  { .pbh-skel-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 1024px) { .pbh-skel-grid { grid-template-columns: repeat(5, 1fr); } }
+        @media (min-width: 1280px) { .pbh-skel-grid { grid-template-columns: repeat(6, 1fr); } }
         @keyframes pbh-pulse {
           0%, 100% { opacity: 1 }
           50%       { opacity: 0.4 }
@@ -147,6 +150,18 @@ export default function Photos() {
           outline: none;
         }
         .pbh-date-input:focus { border-color: var(--color-teal); }
+        .pbh-photo-cell { position: relative; }
+        .pbh-photo-overlay {
+          position: absolute; inset: 0;
+          background: rgba(0,0,0,0.42);
+          opacity: 0; transition: opacity 0.18s;
+          display: flex; flex-direction: column;
+          align-items: flex-start; justify-content: flex-end;
+          padding: 6px 8px; pointer-events: none;
+        }
+        @media (hover: hover) {
+          .pbh-photo-cell:hover .pbh-photo-overlay { opacity: 1; }
+        }
       `}</style>
 
       <div style={{
@@ -407,6 +422,7 @@ export default function Photos() {
               {photos.map((photo, i) => (
                 <div
                   key={photo.id}
+                  className="pbh-photo-cell"
                   onClick={() => setLightboxIdx(i)}
                   style={{ aspectRatio: '1', cursor: 'zoom-in', overflow: 'hidden' }}
                 >
@@ -420,6 +436,16 @@ export default function Photos() {
                       background: 'var(--color-sand-100)',
                     }}
                   />
+                  <div className="pbh-photo-overlay">
+                    {photo.uploader_name && (
+                      <p style={{ color: 'white', fontSize: '10px', fontWeight: 600, lineHeight: 1.3, margin: 0, fontFamily: 'var(--font-body)', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                        {photo.uploader_name}
+                      </p>
+                    )}
+                    <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '9px', lineHeight: 1.3, margin: 0, fontFamily: 'var(--font-mono)', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                      {new Date(photo.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -452,16 +478,19 @@ export default function Photos() {
           onClick={() => setShowUpload(false)}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-            zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+            zIndex: 300, display: 'flex',
+            alignItems: isDesktop ? 'center' : 'flex-end',
+            justifyContent: 'center',
           }}
         >
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: 'white', borderRadius: '20px 20px 0 0',
-              width: '100%', maxWidth: '540px', maxHeight: '92vh',
+              background: 'white',
+              borderRadius: isDesktop ? '16px' : '20px 20px 0 0',
+              width: '100%', maxWidth: '600px', maxHeight: '92vh',
               overflowY: 'auto',
-              paddingBottom: 'calc(var(--safe-bottom, 0px) + 16px)',
+              paddingBottom: isDesktop ? '0' : 'calc(var(--safe-bottom, 0px) + 16px)',
             }}
           >
             <div style={{

@@ -49,6 +49,11 @@
 
   /* Bottom nav height */
   --nav-height: 64px;
+
+  /* Breakpoints */
+  --bp-tablet:  640px;
+  --bp-desktop: 1024px;
+  --bp-wide:    1280px;
 }
 
 /* ── Reset ──────────────────────────────────────────────────── */
@@ -146,6 +151,123 @@ button {
   border: 1.5px solid var(--color-border);
   color: var(--color-text);
   background: transparent;
+}
+
+/* ── App shell (layout foundation for desktop sidebar) ──────── */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-content {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 0 80px 0;
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    flex-direction: row;
+  }
+  .app-content {
+    max-width: 100%;
+    padding: 24px 32px 24px 0;
+    margin: 0;
+  }
+}
+
+/* ── Page grid utilities ─────────────────────────────────────── */
+.page-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .page-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.page-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .page-grid-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-grid-3 {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+/* ── Dashboard layout ───────────────────────────────────────── */
+.dashboard-wrapper {
+  padding: 16px 16px 0;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-wrapper {
+    padding: 24px 0 0;
+  }
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 3fr 2fr;
+    gap: 24px;
+    align-items: start;
+  }
+}
+
+.dashboard-col-left,
+.dashboard-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Mobile: right col (weather/ferry) first */
+.dashboard-col-right { order: 1; }
+.dashboard-col-left  { order: 2; }
+
+@media (min-width: 1024px) {
+  .dashboard-col-left  { order: 1; }
+  .dashboard-col-right { order: 2; }
+}
+
+/* Weather + Ferry: side-by-side on mobile, stacked on desktop */
+.weather-ferry-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 1024px) {
+  .weather-ferry-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Responsive typography ───────────────────────────────────── */
+@media (min-width: 1024px) {
+  h1 { font-size: clamp(24px, 2.5vw, 36px); }
+  h2 { font-size: clamp(18px, 2vw, 28px); }
 }
 
 /* ── Scrollbar (webkit) ─────────────────────────────────────── */

@@ -79,73 +79,71 @@ export default function Home() {
         </p>
       </div>
 
-      {/* ── Ticker ────────────────────────────────────────── */}
+      {/* ── Ticker — full bleed ───────────────────────────── */}
       <TickerBanner />
 
-      {/* ── Cards ─────────────────────────────────────────── */}
-      <div className="page-inner" style={{ paddingTop: '16px' }}>
+      {/* ── Dashboard grid ────────────────────────────────── */}
+      <div className="dashboard-wrapper">
+        <div className="dashboard-grid">
 
-        {/* Row 1: Weather + Ferry */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '12px',
-          marginBottom: '12px',
-        }}>
-          <WeatherCard />
-          <FerryCard />
-        </div>
-
-        {/* Row 2: Who's There */}
-        <div style={{ marginBottom: '12px' }}>
-          <WhosThereCard />
-        </div>
-
-        {/* Fun fact — between Who's There and Announcements */}
-        <FunFactCard facts={facts} />
-
-        {/* Recent photos strip */}
-        <div style={{ marginTop: '16px', marginBottom: '4px' }}>
-          <p style={{
-            fontSize: '10px',
-            fontFamily: 'var(--font-mono)',
-            color: 'var(--color-text-muted)',
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-            marginBottom: '10px',
-          }}>
-            Recent Photos
-          </p>
-          <PhotoFeedPreview />
-        </div>
-
-        {/* Row 3: Announcements */}
-        <AnnouncementsCard />
-
-        {/* Emergency Info link */}
-        <Link to="/emergency" style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '12px 16px', marginTop: '12px',
-          background: 'white', borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--color-border)',
-          borderLeft: '4px solid var(--color-coral)',
-          textDecoration: 'none',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '22px', lineHeight: 1 }}>🚨</span>
-            <div>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-navy)', fontFamily: 'var(--font-body)' }}>
-                Emergency Info
-              </p>
-              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>
-                Contacts, hospital, utilities
-              </p>
+          {/* ── Right column (Weather / Ferry / Fun Fact) ─── */}
+          {/* First in DOM so mobile stacks Weather+Ferry before main content */}
+          <div className="dashboard-col-right">
+            <div className="weather-ferry-grid">
+              <WeatherCard />
+              <FerryCard />
             </div>
+            <FunFactCard facts={facts} />
           </div>
-          <span style={{ color: 'var(--color-text-muted)', fontSize: '16px' }}>›</span>
-        </Link>
 
+          {/* ── Left column (main content) ────────────────── */}
+          <div className="dashboard-col-left">
+            <WhosThereCard />
+
+            {/* Recent photos strip */}
+            <div>
+              <p style={{
+                fontSize: '10px',
+                fontFamily: 'var(--font-mono)',
+                color: 'var(--color-text-muted)',
+                letterSpacing: '2px',
+                textTransform: 'uppercase',
+                marginBottom: '10px',
+              }}>
+                Recent Photos
+              </p>
+              <PhotoFeedPreview />
+            </div>
+
+            <AnnouncementsCard />
+
+            {/* Emergency quick link */}
+            <Link to="/emergency" style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 16px',
+              background: 'white', borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-border)',
+              borderLeft: '4px solid var(--color-coral)',
+              textDecoration: 'none',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '22px', lineHeight: 1 }}>🚨</span>
+                <div>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-navy)', fontFamily: 'var(--font-body)' }}>
+                    Emergency Info
+                  </p>
+                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>
+                    Contacts, hospital, utilities
+                  </p>
+                </div>
+              </div>
+              <span style={{ color: 'var(--color-text-muted)', fontSize: '16px' }}>›</span>
+            </Link>
+          </div>
+
+        </div>
       </div>
+
     </main>
 
     {profile && profile.onboarded === false && (

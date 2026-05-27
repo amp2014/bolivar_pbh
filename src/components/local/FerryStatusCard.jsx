@@ -192,25 +192,35 @@ function CameraView({ label, src, hasError, onError, onTap }) {
           </a>
         </div>
       ) : (
-        <button
-          onClick={onTap}
-          aria-label={`View ${label} full size`}
-          style={{ border: 'none', background: 'none', padding: 0, width: '100%', cursor: 'zoom-in', display: 'block' }}
-        >
-          <img
-            src={src}
-            alt={label}
-            onError={onError}
-            style={{
-              width: '100%',
-              aspectRatio: '4/3',
-              objectFit: 'cover',
-              borderRadius: 'var(--radius-sm)',
-              display: 'block',
-              background: 'var(--color-sand-100)',
-            }}
-          />
-        </button>
+        <>
+          <button
+            onClick={onTap}
+            aria-label={`View ${label} full size`}
+            style={{ border: 'none', background: 'none', padding: 0, width: '100%', cursor: 'zoom-in', display: 'block' }}
+          >
+            <img
+              src={src}
+              alt={label}
+              onError={onError}
+              style={{
+                width: '100%',
+                aspectRatio: '4/3',
+                objectFit: 'cover',
+                borderRadius: 'var(--radius-sm)',
+                display: 'block',
+                background: 'var(--color-sand-100)',
+              }}
+            />
+          </button>
+          <a
+            href={TRANSTAR_FERRY}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: '10px', color: 'var(--color-teal)', fontFamily: 'var(--font-mono)', display: 'block', marginTop: '4px' }}
+          >
+            via TranStar →
+          </a>
+        </>
       )}
     </div>
   )

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useLayout } from '../../contexts/LayoutContext'
 import InventoryForm from './InventoryForm'
 
 const CONDITION_META = {
@@ -9,6 +10,7 @@ const CONDITION_META = {
 }
 
 export default function InventoryList() {
+  const { isDesktop } = useLayout()
   const [items, setItems]         = useState([])
   const [loading, setLoading]     = useState(true)
   const [search, setSearch]       = useState('')
@@ -112,6 +114,51 @@ export default function InventoryList() {
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 24px', color: 'var(--color-text-muted)', fontSize: '14px' }}>
           {search ? `No items matching "${search}"` : 'No items yet.'}
+        </div>
+      ) : isDesktop ? (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                {['Name', 'Category', 'Condition', 'Location', 'Qty', ''].map((h) => (
+                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 600, background: 'var(--color-sand-50)' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((item, i) => {
+                const meta = CONDITION_META[item.condition] ?? CONDITION_META.good
+                return (
+                  <tr key={item.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--color-border)' : 'none' }}>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 500, color: 'var(--color-navy)', fontFamily: 'var(--font-body)' }}>{item.name}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>{item.category}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ padding: '3px 10px', borderRadius: 'var(--radius-full)', background: meta.bg, color: meta.color, fontSize: '11px', fontWeight: 700 }}>
+                        {meta.label}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>{item.location ?? '—'}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>{item.quantity}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <button onClick={() => { setEditItem(item); setShowForm(true) }} style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-teal)', background: 'none', border: '1px solid var(--color-teal)', borderRadius: 'var(--radius-sm)', padding: '4px 12px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Edit</button>
+                        <button onClick={() => setConfirmDel(item.id)} style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-coral)', background: 'none', border: '1px solid var(--color-coral)', borderRadius: 'var(--radius-sm)', padding: '4px 12px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          {confirmDel && (
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--color-sand-50)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', flex: 1 }}>Remove this item?</span>
+              <button onClick={() => handleDelete(confirmDel)} style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-coral)', background: 'none', border: 'none', cursor: 'pointer', minHeight: '32px' }}>Delete</button>
+              <button onClick={() => setConfirmDel(null)} style={{ fontSize: '13px', color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', minHeight: '32px' }}>Cancel</button>
+            </div>
+          )}
         </div>
       ) : (
         Object.entries(grouped).map(([category, catItems]) => (

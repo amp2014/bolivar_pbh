@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useLayout } from '../../contexts/LayoutContext'
 
-const CATEGORIES = ['Appliances', 'Electronics', 'Furniture', 'Games', 'Kitchen', 'Linens', 'Outdoor', 'Other']
-const LOCATIONS  = ['Kitchen', 'Living Room', 'Bedroom 1', 'Bedroom 2', 'Bedroom 3', 'Bathroom', 'Patio', 'Laundry', 'Other']
+const CATEGORIES = ['Appliances', 'Electronics', 'Furniture', 'Games', 'Games & Recreation', 'Kitchen', 'Linens', 'Outdoor', 'Outdoor & Beach', 'Tools & Hardware', 'Other']
+const LOCATIONS  = ['Kitchen', 'Living Room', 'Bedroom 1', 'Bedroom 2', 'Bedroom 3', 'Bathroom', 'Patio', 'Porch Closet', 'Shed', 'Laundry', 'Other']
 
 export default function InventoryForm({ item = null, onSave, onClose }) {
+  const { isDesktop } = useLayout()
   const [visible, setVisible] = useState(false)
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true))
@@ -67,17 +69,20 @@ export default function InventoryForm({ item = null, onSave, onClose }) {
       }} />
 
       <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: 'white', borderRadius: '20px 20px 0 0',
-        zIndex: 201, maxHeight: '92dvh',
+        position: 'fixed',
+        ...(isDesktop
+          ? { top: '50%', left: '50%', right: 'auto', bottom: 'auto', maxWidth: '560px', width: 'calc(100% - 32px)', borderRadius: '16px', transform: visible ? 'translate(-50%, -50%)' : 'translate(-50%, calc(-50% + 24px))', opacity: visible ? 1 : 0 }
+          : { bottom: 0, left: 0, right: 0, borderRadius: '20px 20px 0 0', transform: visible ? 'translateY(0)' : 'translateY(100%)' }
+        ),
+        background: 'white', zIndex: 201, maxHeight: isDesktop ? '90dvh' : '92dvh',
         display: 'flex', flexDirection: 'column',
-        transform: visible ? 'translateY(0)' : 'translateY(100%)',
-        transition: 'transform 0.32s cubic-bezier(0.16,1,0.3,1)',
+        transition: 'transform 0.32s cubic-bezier(0.16,1,0.3,1), opacity 0.32s',
       }}>
-        {/* Drag handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-sand-200)' }} />
-        </div>
+        {!isDesktop && (
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-sand-200)' }} />
+          </div>
+        )}
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 20px 16px' }}>
@@ -148,7 +153,7 @@ export default function InventoryForm({ item = null, onSave, onClose }) {
         </div>
 
         {/* Save */}
-        <div style={{ padding: '12px 20px', paddingBottom: 'calc(12px + var(--safe-bottom))' }}>
+        <div style={{ padding: '12px 20px', paddingBottom: isDesktop ? '20px' : 'calc(12px + var(--safe-bottom))' }}>
           <button onClick={handleSave} disabled={saving} className="btn btn-primary"
             style={{ width: '100%', height: '52px', fontSize: '16px', fontWeight: 600 }}>
             {saving ? 'Saving…' : item ? 'Save Changes' : 'Add Item'}

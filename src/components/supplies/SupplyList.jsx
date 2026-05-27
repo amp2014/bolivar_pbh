@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useLayout } from '../../contexts/LayoutContext'
 import SupplyForm from './SupplyForm'
 
 const STATUS_META = {
@@ -9,6 +10,7 @@ const STATUS_META = {
 }
 
 export default function SupplyList() {
+  const { isDesktop } = useLayout()
   const [supplies, setSupplies] = useState([])
   const [loading, setLoading]   = useState(true)
   const [editId, setEditId]     = useState(null)
@@ -129,6 +131,54 @@ export default function SupplyList() {
       ) : displayed.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 24px', color: 'var(--color-text-muted)', fontSize: '14px' }}>
           {searchTerm ? `No results for "${search}"` : view === 'shopping' ? '🎉 Everything is stocked!' : 'No supplies found.'}
+        </div>
+      ) : isDesktop ? (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                {['Name', 'Category', 'Status', 'Updated by', ''].map((h) => (
+                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 600, background: 'var(--color-sand-50)' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {displayed.map((s, i) => {
+                const meta = STATUS_META[s.status] ?? STATUS_META.good
+                const isEditing = editId === s.id
+                return (
+                  <tr key={s.id} style={{ borderBottom: i < displayed.length - 1 ? '1px solid var(--color-border)' : 'none' }}>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 500, color: 'var(--color-navy)', fontFamily: 'var(--font-body)' }}>{s.name}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>{s.category}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      {isEditing ? (
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          {Object.entries(STATUS_META).map(([val, m]) => (
+                            <button key={val} onClick={() => updateStatus(s.id, val)} disabled={saving} style={{ height: '26px', padding: '0 10px', borderRadius: 'var(--radius-full)', border: s.status === val ? 'none' : '1px solid var(--color-border)', background: s.status === val ? m.bg : 'transparent', color: s.status === val ? m.color : 'var(--color-text-muted)', fontSize: '11px', fontWeight: 600, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>
+                              {m.label}
+                            </button>
+                          ))}
+                          <button onClick={() => setEditId(null)} style={{ height: '26px', padding: '0 8px', border: 'none', background: 'none', color: 'var(--color-text-muted)', fontSize: '16px', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setEditId(s.id)} style={{ padding: '3px 10px', borderRadius: 'var(--radius-full)', border: 'none', background: meta.bg, color: meta.color, fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>
+                          {meta.label}
+                        </button>
+                      )}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>{s.last_updated_by ?? '—'}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      <button onClick={() => { setEditSupply(s); setShowForm(true) }} style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-teal)', background: 'none', border: '1px solid var(--color-teal)', borderRadius: 'var(--radius-sm)', padding: '4px 12px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       ) : (
         Object.entries(grouped).map(([category, items]) => (
