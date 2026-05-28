@@ -5,10 +5,12 @@ import { useLayout } from '../contexts/LayoutContext'
 import UserList from '../components/admin/UserList'
 import AppSettings from '../components/admin/AppSettings'
 import BookingLog from '../components/admin/BookingLog'
+import NavBarCustomizer from '../components/admin/NavBarCustomizer'
 
 const TABS = [
   { key: 'Users',    label: 'Users',    icon: '👤' },
   { key: 'Bookings', label: 'Bookings', icon: '📋' },
+  { key: 'Nav',      label: 'Nav Bar',  icon: '🧭' },
   { key: 'Settings', label: 'Settings', icon: '⚙️' },
 ]
 
@@ -43,6 +45,7 @@ export default function Admin() {
     <>
       {section === 'Users'    && <UserList isDesktop={isDesktop} />}
       {section === 'Bookings' && <BookingLog isDesktop={isDesktop} />}
+      {section === 'Nav'      && <NavBarCustomizer />}
       {section === 'Settings' && <AppSettings />}
     </>
   )
@@ -112,17 +115,19 @@ export default function Admin() {
           background: 'var(--color-sand-100)',
           borderRadius: 'var(--radius-full)',
           padding: '4px', marginBottom: '20px',
+          overflowX: 'auto',
         }}>
           {TABS.map(({ key, label, icon }) => (
             <button key={key} onClick={() => setSection(key)} style={{
-              flex: 1, height: '36px',
+              flex: '0 0 auto', height: '36px', padding: '0 12px',
               borderRadius: 'var(--radius-full)', border: 'none',
               background: section === key ? 'white' : 'transparent',
               color: section === key ? 'var(--color-navy)' : 'var(--color-text-muted)',
-              fontFamily: 'var(--font-body)', fontSize: '14px',
+              fontFamily: 'var(--font-body)', fontSize: '13px',
               fontWeight: section === key ? 600 : 400, cursor: 'pointer',
               boxShadow: section === key ? 'var(--shadow-card)' : 'none',
               transition: 'all 0.15s',
+              whiteSpace: 'nowrap',
             }}>
               {icon}  {label}
             </button>

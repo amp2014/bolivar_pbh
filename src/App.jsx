@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { NavConfigProvider } from './contexts/NavConfigContext'
 import { LayoutProvider, useLayout } from './contexts/LayoutContext'
 import { supabase } from './lib/supabase'
 import BottomNav from './components/BottomNav'
@@ -20,6 +21,10 @@ import Announcements from './pages/Announcements'
 import Emergency from './pages/Emergency'
 import Admin from './pages/Admin'
 import Photos from './pages/Photos'
+import More from './pages/More'
+import FishingHome from './pages/fishing/FishingHome'
+import TideBoard from './pages/fishing/TideBoard'
+import CatchLogger from './components/fishing/CatchLogger'
 
 function AppShell({ children }) {
   const { isDesktop } = useLayout()
@@ -28,12 +33,10 @@ function AppShell({ children }) {
   const [showWhatsNew,   setShowWhatsNew]     = useState(false)
   const [whatsNewData,   setWhatsNewData]     = useState(null)
 
-  // Auto-show onboarding on true first login
   useEffect(() => {
     if (profile?.onboarded === false) setShowOnboarding(true)
   }, [profile?.onboarded])
 
-  // Check What's New once the user is fully onboarded (runs once per login)
   useEffect(() => {
     if (!profile || profile.onboarded === false) return
     supabase.from('whats_new').select('*').eq('id', 1).single().then(({ data }) => {
@@ -75,29 +78,47 @@ function AppShell({ children }) {
   )
 }
 
+function S(Page) {
+  return <AppShell><Page /></AppShell>
+}
+
 export default function App() {
   return (
     <LayoutProvider>
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/supply-check" element={<SupplyCheck />} />
-            <Route path="/emergency" element={<Emergency />} />
+          <NavConfigProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login"         element={<Login />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/supply-check"  element={<SupplyCheck />} />
+              <Route path="/emergency"     element={<Emergency />} />
 
-            {/* Protected shell */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<AppShell><Home /></AppShell>} />
-              <Route path="/stays" element={<AppShell><Stays /></AppShell>} />
-              <Route path="/house" element={<AppShell><House /></AppShell>} />
-              <Route path="/local" element={<AppShell><Local /></AppShell>} />
-              <Route path="/announcements" element={<AppShell><Announcements /></AppShell>} />
-              <Route path="/photos" element={<AppShell><Photos /></AppShell>} />
-              <Route path="/admin" element={<AppShell><Admin /></AppShell>} />
-            </Route>
-          </Routes>
+              {/* Protected shell */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/"              element={S(Home)} />
+                <Route path="/stays"         element={S(Stays)} />
+                <Route path="/house"         element={S(House)} />
+                <Route path="/local"         element={S(Local)} />
+                <Route path="/announcements" element={S(Announcements)} />
+                <Route path="/photos"        element={S(Photos)} />
+                <Route path="/admin"         element={S(Admin)} />
+                <Route path="/more"          element={S(More)} />
+
+                {/* Fishing */}
+                <Route path="/fishing"       element={S(FishingHome)} />
+                <Route path="/fishing/tides" element={S(TideBoard)} />
+                <Route path="/fishing/log"   element={
+                  <AppShell>
+                    <div style={{ paddingTop: 'calc(var(--safe-top, 0px) + 20px)', paddingBottom: 'calc(var(--nav-height, 64px) + var(--safe-bottom, 0px) + 24px)' }}>
+                      <CatchLogger />
+                    </div>
+                  </AppShell>
+                } />
+              </Route>
+            </Routes>
+          </NavConfigProvider>
         </AuthProvider>
       </BrowserRouter>
     </LayoutProvider>
