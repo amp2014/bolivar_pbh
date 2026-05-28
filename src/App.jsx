@@ -101,6 +101,7 @@ export default function App() {
                 <Route path="/"              element={S(Home)} />
                 <Route path="/stays"         element={S(Stays)} />
                 <Route path="/house"         element={S(House)} />
+                <Route path="/info"          element={S(House)} />
                 <Route path="/local"         element={S(Local)} />
                 <Route path="/announcements" element={S(Announcements)} />
                 <Route path="/photos"        element={S(Photos)} />
