@@ -12,6 +12,7 @@ import { PhotoFeedPreview } from './Photos'
 import { getRipCurrentRisk } from '../services/ripCurrent'
 import RipCurrentBadge from '../components/fishing/RipCurrentBadge'
 import LatestCatchCard from '../components/dashboard/LatestCatchCard'
+import BeforeYouGoCard from '../components/dashboard/BeforeYouGoCard'
 
 function DashboardRipAlert() {
   const [risk, setRisk] = useState(null)
@@ -114,6 +115,7 @@ export default function Home() {
 
           {/* ── Left column (main content) ────────────────── */}
           <div className="dashboard-col-left">
+            <BeforeYouGoCard />
             <WhosThereCard />
 
             {/* Recent photos strip */}
