@@ -24,6 +24,7 @@ import Photos from './pages/Photos'
 import More from './pages/More'
 import FishingHome from './pages/fishing/FishingHome'
 import TideBoard from './pages/fishing/TideBoard'
+import CatchMap from './pages/fishing/CatchMap'
 import CatchLogger from './components/fishing/CatchLogger'
 
 function AppShell({ children }) {
@@ -109,6 +110,7 @@ export default function App() {
                 {/* Fishing */}
                 <Route path="/fishing"       element={S(FishingHome)} />
                 <Route path="/fishing/tides" element={S(TideBoard)} />
+                <Route path="/fishing/map"   element={S(CatchMap)} />
                 <Route path="/fishing/log"   element={
                   <AppShell>
                     <div style={{ paddingTop: 'calc(var(--safe-top, 0px) + 20px)', paddingBottom: 'calc(var(--nav-height, 64px) + var(--safe-bottom, 0px) + 24px)' }}>

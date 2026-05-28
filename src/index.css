@@ -61,6 +61,10 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.45; }
 }
+@keyframes pbh-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
 
 /* ── Ferry page helpers ──────────────────────────────────────── */
 .x-card-link { transition: filter 0.15s ease; }

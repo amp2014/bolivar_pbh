@@ -9,6 +9,22 @@ import AnnouncementsCard from '../components/dashboard/AnnouncementsCard'
 import TickerBanner from '../components/dashboard/TickerBanner'
 import FunFactCard from '../components/dashboard/FunFactCard'
 import { PhotoFeedPreview } from './Photos'
+import { getRipCurrentRisk } from '../services/ripCurrent'
+import RipCurrentBadge from '../components/fishing/RipCurrentBadge'
+import LatestCatchCard from '../components/dashboard/LatestCatchCard'
+
+function DashboardRipAlert() {
+  const [risk, setRisk] = useState(null)
+  useEffect(() => {
+    getRipCurrentRisk().then(r => setRisk(r?.risk ?? 'unknown'))
+  }, [])
+  if (risk !== 'moderate' && risk !== 'high') return null
+  return (
+    <div style={{ marginBottom: '16px' }}>
+      <RipCurrentBadge />
+    </div>
+  )
+}
 
 function greeting() {
   const h = new Date().getHours()
@@ -91,6 +107,8 @@ export default function Home() {
               <WeatherCard />
               <FerryCard />
             </div>
+            {/* Rip current alert — only renders when moderate or high */}
+            <DashboardRipAlert />
             <FunFactCard facts={facts} />
           </div>
 
@@ -112,6 +130,8 @@ export default function Home() {
               </p>
               <PhotoFeedPreview />
             </div>
+
+            <LatestCatchCard />
 
             <AnnouncementsCard />
 

@@ -1,10 +1,13 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { CurrentConditionsCard } from './TideBoard'
 import CatchLogger from '../../components/fishing/CatchLogger'
 import FishingSpots from '../../components/fishing/FishingSpots'
+import BestTimeCard from '../../components/fishing/BestTimeCard'
+import SolunarCard from '../../components/fishing/SolunarCard'
+import RipCurrentBadge from '../../components/fishing/RipCurrentBadge'
 
 function formatTime(date) {
   let h = date.getHours(), m = date.getMinutes()
@@ -92,9 +95,17 @@ export default function FishingHome() {
         Fishing
       </h1>
 
-      {/* ── Current tide summary ── */}
+      {/* ── Best Time to Fish (headline card) ── */}
       <div style={{ padding: '0 16px 20px' }}>
+        <BestTimeCard />
+      </div>
+
+      {/* ── Current tide summary + rip current ── */}
+      <div style={{ padding: '0 16px 8px' }}>
         <CurrentConditionsCard onSeeAll={() => navigate('/fishing/tides')} />
+      </div>
+      <div style={{ padding: '0 16px 20px' }}>
+        <RipCurrentBadge />
       </div>
 
       {/* ── Log Catch CTA ── */}
@@ -115,9 +126,28 @@ export default function FishingHome() {
         </button>
       </div>
 
-      {/* ── Fishing Spots ── */}
+      {/* ── Solunar Feeding Times ── */}
+      <div style={{ padding: '0 16px 24px' }}>
+        <SolunarCard />
+      </div>
+
+      {/* ── Fishing Spots + Catch Map link ── */}
       <div style={{ padding: '0 16px 24px', borderBottom: '1px solid var(--color-border)' }}>
         <FishingSpots />
+        <button
+          onClick={() => navigate('/fishing/map')}
+          style={{
+            marginTop: '12px', width: '100%', height: '44px',
+            background: 'transparent', border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-full)',
+            fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-body)',
+            color: 'var(--color-navy)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          🗺 View Catch Map
+        </button>
       </div>
 
       {/* ── Recent Catches ── */}
