@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useLayout } from '../../contexts/LayoutContext'
+import { maskPhone, rawPhone } from '../../lib/phone'
 
-const CATEGORIES = ['Restaurant', 'Bar', 'Beach', 'Fishing', 'Nature', 'Activity', 'Shopping', 'Day Trip', 'Other']
+const CATEGORIES     = ['Restaurant', 'Bar', 'Beach', 'Fishing', 'Nature', 'Activity', 'Shopping', 'Day Trip', 'Other']
+const LOCATION_AREAS = ['Bolivar', 'Crystal Beach', 'Galveston', 'Other']
 
 export default function LocalFavoriteForm({ item = null, onSave, onClose }) {
   const { isDesktop } = useLayout()
@@ -17,15 +19,16 @@ export default function LocalFavoriteForm({ item = null, onSave, onClose }) {
     setTimeout(onClose, 320)
   }
 
-  const [name,        setName]        = useState(item?.name        ?? '')
-  const [category,    setCategory]    = useState(item?.category    ?? 'Restaurant')
-  const [description, setDescription] = useState(item?.description ?? '')
-  const [address,     setAddress]     = useState(item?.address     ?? '')
-  const [phone,       setPhone]       = useState(item?.phone       ?? '')
-  const [website,     setWebsite]     = useState(item?.website     ?? '')
-  const [notes,       setNotes]       = useState(item?.notes       ?? '')
-  const [saving,      setSaving]      = useState(false)
-  const [error,       setError]       = useState(null)
+  const [name,         setName]         = useState(item?.name         ?? '')
+  const [category,     setCategory]     = useState(item?.category     ?? 'Restaurant')
+  const [locationArea, setLocationArea] = useState(item?.location_area ?? 'Bolivar')
+  const [description,  setDescription]  = useState(item?.description  ?? '')
+  const [address,      setAddress]      = useState(item?.address      ?? '')
+  const [phone,        setPhone]        = useState(maskPhone(item?.phone ?? ''))
+  const [website,      setWebsite]      = useState(item?.website      ?? '')
+  const [notes,        setNotes]        = useState(item?.notes        ?? '')
+  const [saving,       setSaving]       = useState(false)
+  const [error,        setError]        = useState(null)
 
   async function handleSave() {
     if (!name.trim()) { setError('Please enter a name.'); return }
@@ -34,13 +37,14 @@ export default function LocalFavoriteForm({ item = null, onSave, onClose }) {
     setError(null)
 
     const payload = {
-      name: name.trim(),
+      name:          name.trim(),
       category,
-      description: description.trim() || null,
-      address:     address.trim()     || null,
-      phone:       phone.trim()       || null,
-      website:     website.trim()     || null,
-      notes:       notes.trim()       || null,
+      location_area: locationArea,
+      description:   description.trim() || null,
+      address:       address.trim()     || null,
+      phone:         rawPhone(phone)     || null,
+      website:       website.trim()     || null,
+      notes:         notes.trim()       || null,
     }
 
     let err
@@ -98,11 +102,18 @@ export default function LocalFavoriteForm({ item = null, onSave, onClose }) {
               placeholder="e.g. Stingaree Restaurant" style={inputStyle} autoFocus />
           </Field>
 
-          <Field label="Category">
-            <select value={category} onChange={(e) => setCategory(e.target.value)} style={selectStyle}>
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Field label="Category">
+              <select value={category} onChange={(e) => setCategory(e.target.value)} style={selectStyle}>
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </Field>
+            <Field label="Area">
+              <select value={locationArea} onChange={(e) => setLocationArea(e.target.value)} style={selectStyle}>
+                {LOCATION_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </Field>
+          </div>
 
           <Field label="Description (optional)">
             <textarea value={description} onChange={(e) => setDescription(e.target.value)}
@@ -118,8 +129,8 @@ export default function LocalFavoriteForm({ item = null, onSave, onClose }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <Field label="Phone (optional)">
-              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
-                placeholder="(409) 555-0000" style={inputStyle} />
+              <input type="tel" value={phone} onChange={(e) => setPhone(maskPhone(e.target.value))}
+                placeholder="(409) 555-0000" style={inputStyle} inputMode="numeric" />
             </Field>
             <Field label="Website (optional)">
               <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)}

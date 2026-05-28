@@ -28,7 +28,7 @@ function useAddressSuggestions(query) {
   return suggestions
 }
 
-export default function ProfileButton() {
+export default function ProfileButton({ onShowWelcomeGuide }) {
   const { profile, role, signOut, updateProfile } = useAuth()
   const [open, setOpen]               = useState(false)
   const [editingAddr, setEditingAddr] = useState(false)
@@ -254,6 +254,19 @@ export default function ProfileButton() {
                 </div>
               )}
             </div>
+
+            <button
+              onClick={() => { setOpen(false); onShowWelcomeGuide?.() }}
+              style={{
+                width: '100%', height: '44px', marginBottom: '10px',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: 'var(--radius-full)', background: 'transparent',
+                color: 'var(--color-navy)', fontSize: '14px',
+                fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer',
+              }}
+            >
+              View Welcome Guide
+            </button>
 
             <button
               onClick={signOut}

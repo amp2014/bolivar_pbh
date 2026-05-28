@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 
 function formatRange(start, end) {
@@ -20,18 +19,9 @@ function nights(start, end) {
 
 export default function BookingCard({ booking, onEdit, onDelete }) {
   const { isFamily } = useAuth()
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const [deleting, setDeleting] = useState(false)
 
   const isTentative = booking.status === 'tentative'
   const n = nights(booking.start_date, booking.end_date)
-
-  async function handleDelete() {
-    setDeleting(true)
-    await onDelete(booking)
-    setDeleting(false)
-    setConfirmDelete(false)
-  }
 
   return (
     <div className="card" style={{ marginBottom: '10px', position: 'relative', overflow: 'hidden' }}>
@@ -102,35 +92,14 @@ export default function BookingCard({ booking, onEdit, onDelete }) {
         {/* Actions (family/admin only) */}
         {isFamily && (
           <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--color-border)' }}>
-            {confirmDelete ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', flex: 1 }}>
-                  Remove this booking?
-                </span>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-coral)', background: 'none', border: 'none', cursor: 'pointer', minHeight: '32px' }}
-                >
-                  {deleting ? 'Deleting…' : 'Delete'}
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  style={{ fontSize: '13px', color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', minHeight: '32px' }}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: '16px' }}>
-                <button onClick={() => onEdit(booking)} style={actionBtn}>
-                  Edit
-                </button>
-                <button onClick={() => setConfirmDelete(true)} style={{ ...actionBtn, color: 'var(--color-coral)' }}>
-                  Delete
-                </button>
-              </div>
-            )}
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <button onClick={() => onEdit(booking)} style={actionBtn}>
+                Edit
+              </button>
+              <button onClick={() => onDelete(booking)} style={{ ...actionBtn, color: 'var(--color-coral)' }}>
+                Cancel
+              </button>
+            </div>
           </div>
         )}
       </div>

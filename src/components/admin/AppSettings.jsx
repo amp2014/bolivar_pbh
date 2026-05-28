@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
 const SETTING_META = {
@@ -49,6 +49,7 @@ export default function AppSettings() {
   }
 
   return (
+    <>
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
       {Object.entries(SETTING_META).map(([key, meta], i, arr) => {
         const isOn   = settings[key] === 'true'
@@ -100,6 +101,111 @@ export default function AppSettings() {
           </div>
         )
       })}
+    </div>
+    <WhatsNewEditor />
+    </>
+  )
+}
+
+// ── What's New editor ────────────────────────────────────────────────────────
+
+const editorInputStyle = {
+  width: '100%', padding: '0 12px',
+  height: '40px',
+  borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--color-border)',
+  background: 'var(--color-sand-50)', fontFamily: 'var(--font-body)',
+  fontSize: '14px', color: 'var(--color-text)', outline: 'none', boxSizing: 'border-box',
+}
+
+const editorLabelStyle = {
+  display: 'block', fontSize: '11px', fontWeight: 600,
+  color: 'var(--color-text-muted)', textTransform: 'uppercase',
+  letterSpacing: '0.4px', marginBottom: '6px', fontFamily: 'var(--font-body)',
+}
+
+function WhatsNewEditor() {
+  const [loading,  setLoading]  = useState(true)
+  const [version,  setVersion]  = useState(1)
+  const [title,    setTitle]    = useState('')
+  const [content,  setContent]  = useState('')
+  const [saving,   setSaving]   = useState(false)
+  const [saved,    setSaved]    = useState(false)
+  const savedTimer = useRef(null)
+
+  useEffect(() => {
+    supabase.from('whats_new').select('*').eq('id', 1).single().then(({ data }) => {
+      if (data) { setVersion(data.version); setTitle(data.title); setContent(data.content) }
+      setLoading(false)
+    })
+  }, [])
+
+  async function publish() {
+    if (!title.trim() || !content.trim()) return
+    setSaving(true)
+    setSaved(false)
+    const newVersion = version + 1
+    const { error } = await supabase
+      .from('whats_new')
+      .update({ version: newVersion, title: title.trim(), content: content.trim(), updated_at: new Date().toISOString() })
+      .eq('id', 1)
+    if (!error) {
+      setVersion(newVersion)
+      setSaved(true)
+      clearTimeout(savedTimer.current)
+      savedTimer.current = setTimeout(() => setSaved(false), 3000)
+    }
+    setSaving(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="card" style={{ padding: '16px', marginTop: '16px' }}>
+        <div style={{ height: 13, width: '30%', background: 'var(--color-sand-100)', borderRadius: 3, marginBottom: 8 }} />
+        <div style={{ height: 80, background: 'var(--color-sand-100)', borderRadius: 3 }} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="card" style={{ padding: '16px', marginTop: '16px' }}>
+      <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-navy)', marginBottom: '2px', fontFamily: 'var(--font-body)' }}>
+        What's New
+      </p>
+      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)', marginBottom: '16px' }}>
+        Currently on <strong>v{version}</strong>. Publishing increments the version and shows the modal to all family members on their next login.
+      </p>
+
+      <div style={{ marginBottom: '12px' }}>
+        <label style={editorLabelStyle}>Title</label>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          style={editorInputStyle}
+        />
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <label style={editorLabelStyle}>Content — one item per line, use • for bullets</label>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={6}
+          style={{
+            ...editorInputStyle, height: 'auto', resize: 'vertical',
+            lineHeight: 1.5, paddingTop: '10px', paddingBottom: '10px',
+          }}
+        />
+      </div>
+
+      <button
+        onClick={publish}
+        disabled={saving || !title.trim() || !content.trim()}
+        className="btn btn-primary"
+        style={{ height: '40px', padding: '0 20px', fontSize: '14px', fontWeight: 600 }}
+      >
+        {saving ? 'Publishing…' : saved ? 'Published ✓' : `Publish Update (v${version + 1})`}
+      </button>
     </div>
   )
 }

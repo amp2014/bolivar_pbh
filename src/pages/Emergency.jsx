@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import EmergencyContactForm from '../components/emergency/EmergencyContactForm'
+import { formatPhone, rawPhone } from '../lib/phone'
 
 const CATEGORY_ICONS = {
   'Emergency Services': '🚨',
@@ -98,7 +99,7 @@ export default function Emergency() {
                   )}
                   {item.phone ? (
                     <a
-                      href={`tel:${item.phone}`}
+                      href={`tel:${rawPhone(item.phone)}`}
                       style={{
                         display: 'inline-flex', alignItems: 'center',
                         height: '34px', padding: '0 12px',
@@ -111,7 +112,7 @@ export default function Emergency() {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {item.phone}
+                      {formatPhone(item.phone)}
                     </a>
                   ) : (
                     <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>

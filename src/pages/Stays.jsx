@@ -28,6 +28,8 @@ export default function Stays() {
   const [loading, setLoading]       = useState(true)
   const [showForm, setShowForm]     = useState(false)
   const [editBooking, setEditBooking] = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [deleting, setDeleting]     = useState(false)
 
   async function fetchBookings() {
     setLoading(true)
@@ -48,7 +50,13 @@ export default function Stays() {
 
   useEffect(() => { fetchBookings() }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handleDelete(booking) {
+  function handleDelete(booking) {
+    setPendingDelete(booking)
+  }
+
+  async function executeDelete() {
+    if (!pendingDelete) return
+    setDeleting(true)
     const { error } = await supabase
       .from('bookings')
       .update({
@@ -56,14 +64,19 @@ export default function Stays() {
         cancelled_at: new Date().toISOString(),
         cancelled_by_name: profile?.display_name ?? 'Unknown',
       })
-      .eq('id', booking.id)
-    if (error) { console.error('Cancel failed:', error.message); return }
-    if (providerToken && booking.google_calendar_event_id) {
-      deleteCalendarEvent(providerToken, booking.google_calendar_event_id).catch((e) => {
-        console.warn('Calendar delete failed:', e.message)
-      })
+      .eq('id', pendingDelete.id)
+    if (!error) {
+      if (providerToken && pendingDelete.google_calendar_event_id) {
+        deleteCalendarEvent(providerToken, pendingDelete.google_calendar_event_id).catch((e) => {
+          console.warn('Calendar delete failed:', e.message)
+        })
+      }
+      setBookings((prev) => prev.filter((b) => b.id !== pendingDelete.id))
+    } else {
+      console.error('Cancel failed:', error.message)
     }
-    setBookings((prev) => prev.filter((b) => b.id !== booking.id))
+    setDeleting(false)
+    setPendingDelete(null)
   }
 
   function handleEdit(booking) {
@@ -264,6 +277,15 @@ export default function Stays() {
             onClose={() => { setShowForm(false); setEditBooking(null) }}
           />
         )}
+        {pendingDelete && (
+          <ConfirmCancelModal
+            booking={pendingDelete}
+            deleting={deleting}
+            isDesktop={isDesktop}
+            onConfirm={executeDelete}
+            onClose={() => !deleting && setPendingDelete(null)}
+          />
+        )}
       </main>
     )
   }
@@ -298,7 +320,86 @@ export default function Stays() {
           onClose={() => { setShowForm(false); setEditBooking(null) }}
         />
       )}
+      {pendingDelete && (
+        <ConfirmCancelModal
+          booking={pendingDelete}
+          deleting={deleting}
+          isDesktop={isDesktop}
+          onConfirm={executeDelete}
+          onClose={() => !deleting && setPendingDelete(null)}
+        />
+      )}
     </main>
+  )
+}
+
+function ConfirmCancelModal({ booking, deleting, isDesktop, onConfirm, onClose }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.5)',
+        zIndex: 350,
+        display: 'flex',
+        alignItems: isDesktop ? 'center' : 'flex-end',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'white',
+          borderRadius: isDesktop ? '16px' : '20px 20px 0 0',
+          width: '100%',
+          maxWidth: isDesktop ? '400px' : '100%',
+          padding: '24px 20px',
+          paddingBottom: isDesktop ? '24px' : 'calc(24px + var(--safe-bottom, 0px))',
+        }}
+      >
+        <h3 style={{
+          fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700,
+          color: 'var(--color-navy)', marginBottom: '10px',
+        }}>
+          Cancel this stay?
+        </h3>
+        <p style={{
+          fontSize: '14px', color: 'var(--color-text-muted)', lineHeight: 1.5,
+          marginBottom: '20px',
+        }}>
+          This will remove <strong style={{ color: 'var(--color-text)' }}>{booking.guest_name}</strong>'s stay
+          from {formatRange(booking.start_date, booking.end_date)} from the calendar. This cannot be undone.
+        </p>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={onClose}
+            disabled={deleting}
+            style={{
+              flex: 1, height: '44px', borderRadius: 'var(--radius-full)',
+              border: '1.5px solid var(--color-border)',
+              background: 'white', color: 'var(--color-text)',
+              fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-body)',
+              cursor: 'pointer', opacity: deleting ? 0.6 : 1,
+            }}
+          >
+            Keep Stay
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={deleting}
+            style={{
+              flex: 1, height: '44px', borderRadius: 'var(--radius-full)',
+              border: 'none', background: '#D4634A', color: 'white',
+              fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-body)',
+              cursor: deleting ? 'default' : 'pointer',
+              opacity: deleting ? 0.7 : 1,
+            }}
+          >
+            {deleting ? 'Cancelling…' : 'Yes, Cancel It'}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

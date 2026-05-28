@@ -1,10 +1,14 @@
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LayoutProvider, useLayout } from './contexts/LayoutContext'
+import { supabase } from './lib/supabase'
 import BottomNav from './components/BottomNav'
 import SideNav from './components/SideNav'
 import ProfileButton from './components/ProfileButton'
 import ProtectedRoute from './components/ProtectedRoute'
+import OnboardingModal from './components/onboarding/OnboardingModal'
+import WhatsNewModal from './components/onboarding/WhatsNewModal'
 import AuthCallback from './pages/AuthCallback'
 import Login from './pages/Login'
 import Home from './pages/Home'
@@ -19,14 +23,54 @@ import Photos from './pages/Photos'
 
 function AppShell({ children }) {
   const { isDesktop } = useLayout()
+  const { profile, user, refreshProfile } = useAuth()
+  const [showOnboarding, setShowOnboarding]   = useState(false)
+  const [showWhatsNew,   setShowWhatsNew]     = useState(false)
+  const [whatsNewData,   setWhatsNewData]     = useState(null)
+
+  // Auto-show onboarding on true first login
+  useEffect(() => {
+    if (profile?.onboarded === false) setShowOnboarding(true)
+  }, [profile?.onboarded])
+
+  // Check What's New once the user is fully onboarded (runs once per login)
+  useEffect(() => {
+    if (!profile || profile.onboarded === false) return
+    supabase.from('whats_new').select('*').eq('id', 1).single().then(({ data }) => {
+      if (data && (profile.whats_new_version ?? 0) < data.version) {
+        setWhatsNewData(data)
+        setShowWhatsNew(true)
+      }
+    })
+  }, [profile?.id, profile?.onboarded])
+
+  async function onOnboardingComplete() {
+    await refreshProfile()
+    setShowOnboarding(false)
+  }
+
+  async function dismissWhatsNew() {
+    setShowWhatsNew(false)
+    if (user && whatsNewData) {
+      await supabase.from('users').update({ whats_new_version: whatsNewData.version }).eq('id', user.id)
+    }
+  }
+
   return (
     <div className="app-shell" data-layout={isDesktop ? 'desktop' : 'mobile'}>
-      {isDesktop && <SideNav />}
+      {isDesktop && <SideNav onShowWelcomeGuide={() => setShowOnboarding(true)} />}
       <main className="app-content" id="main-content">
         {children}
-        {!isDesktop && <ProfileButton />}
+        {!isDesktop && <ProfileButton onShowWelcomeGuide={() => setShowOnboarding(true)} />}
       </main>
       <BottomNav />
+
+      {showOnboarding && (
+        <OnboardingModal onComplete={onOnboardingComplete} />
+      )}
+      {!showOnboarding && showWhatsNew && whatsNewData && (
+        <WhatsNewModal data={whatsNewData} onDismiss={dismissWhatsNew} />
+      )}
     </div>
   )
 }

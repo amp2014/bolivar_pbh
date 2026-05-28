@@ -41,6 +41,17 @@ export default function FerryStatusCard() {
 
   return (
     <>
+      <style>{`
+        .pbh-cameras-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        @media (min-width: 480px) {
+          .pbh-cameras-grid { grid-template-columns: 1fr 1fr; }
+        }
+      `}</style>
+
       {/* ── Live Wait Times ────────────────────────────── */}
       <WaitTimesCard status={waitStatus} data={waitTimes} />
 
@@ -51,7 +62,7 @@ export default function FerryStatusCard() {
           <p style={sectionLabel}>Live Cameras</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        <div className="pbh-cameras-grid">
           <CameraViewer
             label="Galveston Queue"
             cameras={GALVESTON_CAMERAS}
@@ -408,10 +419,10 @@ function CameraViewer({ label, cameras, onOpenModal }) {
         onClick={() => !hasError && onOpenModal(cameras, index, ts)}
         aria-label={`View ${label} full size`}
         style={{
-          border: 'none', background: 'var(--color-sand-100)', padding: 0,
+          border: 'none', background: '#000', padding: 0,
           width: '100%', cursor: hasError ? 'default' : 'zoom-in',
           borderRadius: 'var(--radius-sm)', overflow: 'hidden',
-          aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          aspectRatio: '4/3', display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
         {hasError ? (
@@ -427,7 +438,7 @@ function CameraViewer({ label, cameras, onOpenModal }) {
             onError={onError}
             style={{
               width: '100%', height: '100%',
-              objectFit: 'cover',
+              objectFit: 'contain',
               opacity: fade ? 1 : 0,
               transition: 'opacity 0.15s ease',
               display: 'block',
@@ -508,7 +519,7 @@ function CameraModal({ cameras, initialIndex, initialTs, onClose }) {
       >
         {hasError ? (
           <div style={{
-            aspectRatio: '16/9', background: '#111',
+            aspectRatio: '4/3', background: '#111',
             borderRadius: 'var(--radius-md)',
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', gap: '8px',
@@ -523,8 +534,9 @@ function CameraModal({ cameras, initialIndex, initialTs, onClose }) {
             alt={`Camera ${index + 1}`}
             onError={() => setHasError(true)}
             style={{
-              width: '100%', aspectRatio: '16/9',
-              objectFit: 'cover',
+              width: '100%', aspectRatio: '4/3',
+              objectFit: 'contain',
+              background: '#000',
               borderRadius: 'var(--radius-md)',
               opacity: fade ? 1 : 0,
               transition: 'opacity 0.15s ease',

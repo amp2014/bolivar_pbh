@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import OnboardingModal from '../components/onboarding/OnboardingModal'
 import WeatherCard from '../components/dashboard/WeatherCard'
 import FerryCard from '../components/dashboard/FerryCard'
 import WhosThereCard from '../components/dashboard/WhosThereCard'
@@ -19,7 +18,7 @@ function greeting() {
 }
 
 export default function Home() {
-  const { profile, refreshProfile } = useAuth()
+  const { profile } = useAuth()
   const firstName = profile?.display_name?.split(' ')[0] ?? 'there'
 
   const [facts, setFacts] = useState([])
@@ -29,7 +28,6 @@ export default function Home() {
   }, [])
 
   return (
-    <>
     <main className="page" style={{ paddingTop: 0 }}>
 
       {/* ── Header banner ─────────────────────────────────── */}
@@ -145,10 +143,5 @@ export default function Home() {
       </div>
 
     </main>
-
-    {profile && profile.onboarded === false && (
-      <OnboardingModal onComplete={refreshProfile} />
-    )}
-    </>
   )
 }

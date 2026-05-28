@@ -73,7 +73,7 @@ const ADMIN_TAB = {
   ),
 }
 
-export default function SideNav() {
+export default function SideNav({ onShowWelcomeGuide }) {
   const { profile, role, isAdmin, signOut } = useAuth()
   const [hoveredTo, setHoveredTo] = useState(null)
 
@@ -210,24 +210,44 @@ export default function SideNav() {
           </div>
         </div>
 
-        <button
-          onClick={signOut}
-          style={{
-            fontSize: '12px',
-            fontFamily: 'var(--font-body)',
-            color: 'rgba(255,255,255,0.45)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-            textAlign: 'left',
-            transition: 'color 0.15s',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.8)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
-        >
-          Sign out
-        </button>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <button
+            onClick={onShowWelcomeGuide}
+            style={{
+              fontSize: '12px',
+              fontFamily: 'var(--font-body)',
+              color: 'rgba(255,255,255,0.45)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              textAlign: 'left',
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.8)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+          >
+            Welcome Guide
+          </button>
+          <button
+            onClick={signOut}
+            style={{
+              fontSize: '12px',
+              fontFamily: 'var(--font-body)',
+              color: 'rgba(255,255,255,0.45)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              textAlign: 'left',
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.8)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}
+          >
+            Sign out
+          </button>
+        </div>
       </div>
 
     </nav>

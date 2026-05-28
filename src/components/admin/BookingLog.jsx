@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../contexts/AuthContext'
+import { useLayout } from '../../contexts/LayoutContext'
 
 const STATUS_META = {
   confirmed:  { label: 'Confirmed',  color: 'var(--color-teal)',  bg: 'var(--color-teal-xlight)' },
@@ -29,10 +31,15 @@ function shortDate(iso) {
 const FILTERS = ['All', 'Confirmed', 'Tentative', 'Cancelled']
 
 export default function BookingLog() {
-  const [bookings, setBookings] = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [filter, setFilter]     = useState('All')
-  const [search, setSearch]     = useState('')
+  const { isAdmin } = useAuth()
+  const { isDesktop } = useLayout()
+  const [bookings, setBookings]     = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [filter, setFilter]         = useState('All')
+  const [search, setSearch]         = useState('')
+  const [pendingPurge, setPendingPurge] = useState(null)  // booking | null
+  const [showPurgeAll, setShowPurgeAll] = useState(false)
+  const [purging, setPurging]       = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -47,6 +54,28 @@ export default function BookingLog() {
     load()
   }, [])
 
+  async function handlePurgeSingle() {
+    if (!pendingPurge || !isAdmin) return
+    setPurging(true)
+    const { error } = await supabase.from('bookings').delete().eq('id', pendingPurge.id)
+    if (!error) {
+      setBookings((prev) => prev.filter((b) => b.id !== pendingPurge.id))
+    }
+    setPurging(false)
+    setPendingPurge(null)
+  }
+
+  async function handlePurgeAll() {
+    if (!isAdmin) return
+    setPurging(true)
+    const { error } = await supabase.from('bookings').delete().eq('status', 'cancelled')
+    if (!error) {
+      setBookings((prev) => prev.filter((b) => b.status !== 'cancelled'))
+    }
+    setPurging(false)
+    setShowPurgeAll(false)
+  }
+
   const displayed = bookings.filter((b) => {
     const matchFilter = filter === 'All' || b.status === filter.toLowerCase()
     const matchSearch = !search || b.guest_name?.toLowerCase().includes(search.toLowerCase())
@@ -58,15 +87,25 @@ export default function BookingLog() {
     return acc
   }, {})
 
+  const cancelledCount = counts.cancelled ?? 0
+
   return (
-    <div>
+    <>
+      <style>{`
+        .pbh-log-trash-btn { opacity: 1; transition: opacity 0.15s; }
+        @media (hover: hover) {
+          .pbh-log-trash-btn { opacity: 0; }
+          .pbh-log-row:hover .pbh-log-trash-btn { opacity: 1; }
+        }
+      `}</style>
+
       {/* Summary chips */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
         {[
           { label: 'Total',     count: bookings.length,          color: 'var(--color-navy)' },
           { label: 'Confirmed', count: counts.confirmed ?? 0,    color: 'var(--color-teal)' },
           { label: 'Tentative', count: counts.tentative ?? 0,    color: '#b8860b' },
-          { label: 'Cancelled', count: counts.cancelled ?? 0,    color: 'var(--color-text-muted)' },
+          { label: 'Cancelled', count: cancelledCount,           color: 'var(--color-text-muted)' },
         ].map(({ label, count, color }) => (
           <div key={label} style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -78,6 +117,27 @@ export default function BookingLog() {
           </div>
         ))}
       </div>
+
+      {/* Purge All Cancelled — admin only */}
+      {isAdmin && cancelledCount > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+          <button
+            onClick={() => setShowPurgeAll(true)}
+            style={{
+              fontSize: '12px', fontWeight: 600,
+              color: 'var(--color-coral)',
+              background: 'rgba(212,99,74,0.08)',
+              border: '1px solid rgba(212,99,74,0.3)',
+              borderRadius: 'var(--radius-full)',
+              padding: '6px 14px',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+            }}
+          >
+            Purge All Cancelled ({cancelledCount})
+          </button>
+        </div>
+      )}
 
       {/* Search */}
       <input
@@ -133,7 +193,7 @@ export default function BookingLog() {
             return (
               <div
                 key={b.id}
-                className="card"
+                className="card pbh-log-row"
                 style={{
                   padding: '12px 14px',
                   opacity: isCancelled ? 0.7 : 1,
@@ -147,7 +207,7 @@ export default function BookingLog() {
                   opacity: isCancelled ? 0.4 : 1,
                 }} />
                 <div style={{ paddingLeft: '8px' }}>
-                  {/* Name + badge */}
+                  {/* Name + badge + trash */}
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
                     <p style={{
                       fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 600,
@@ -156,15 +216,37 @@ export default function BookingLog() {
                     }}>
                       {b.guest_name}
                     </p>
-                    <span style={{
-                      fontSize: '10px', fontWeight: 700, letterSpacing: '0.4px',
-                      textTransform: 'uppercase', padding: '3px 8px',
-                      borderRadius: 'var(--radius-full)',
-                      background: meta.bg, color: meta.color,
-                      flexShrink: 0,
-                    }}>
-                      {meta.label}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <span style={{
+                        fontSize: '10px', fontWeight: 700, letterSpacing: '0.4px',
+                        textTransform: 'uppercase', padding: '3px 8px',
+                        borderRadius: 'var(--radius-full)',
+                        background: meta.bg, color: meta.color,
+                      }}>
+                        {meta.label}
+                      </span>
+                      {isAdmin && (
+                        <button
+                          className="pbh-log-trash-btn"
+                          onClick={() => setPendingPurge(b)}
+                          aria-label="Delete log entry"
+                          style={{
+                            background: 'none', border: 'none',
+                            color: 'var(--color-text-muted)',
+                            cursor: 'pointer', padding: '4px',
+                            borderRadius: '4px', lineHeight: 1,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6l-1 14H6L5 6"/>
+                            <path d="M10 11v6M14 11v6"/>
+                            <path d="M9 6V4h6v2"/>
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Dates + nights */}
@@ -175,7 +257,7 @@ export default function BookingLog() {
                     </span>
                   </p>
 
-                  {/* Party size + calendar */}
+                  {/* Party size + notes */}
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '4px' }}>
                     {b.party_size > 1 && (
                       <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>👥 {b.party_size} guests</span>
@@ -190,17 +272,12 @@ export default function BookingLog() {
                   {/* Booked on */}
                   <p style={{ fontSize: '11px', color: 'var(--color-sand-400)' }}>
                     Booked {shortDate(b.created_at)}
-                    {b.google_calendar_event_id
-                      ? ' · 📅 Synced'
-                      : ' · 📅 Not synced'}
+                    {b.google_calendar_event_id ? ' · 📅 Synced' : ' · 📅 Not synced'}
                   </p>
 
                   {/* Cancellation info */}
                   {isCancelled && (b.cancelled_at || b.cancelled_by_name) && (
-                    <p style={{
-                      fontSize: '11px', color: 'var(--color-coral)',
-                      marginTop: '4px', fontWeight: 500,
-                    }}>
+                    <p style={{ fontSize: '11px', color: 'var(--color-coral)', marginTop: '4px', fontWeight: 500 }}>
                       Cancelled{b.cancelled_by_name ? ` by ${b.cancelled_by_name}` : ''}
                       {b.cancelled_at ? ` on ${shortDate(b.cancelled_at)}` : ''}
                     </p>
@@ -211,6 +288,103 @@ export default function BookingLog() {
           })}
         </div>
       )}
+
+      {/* Single-entry delete confirm */}
+      {pendingPurge && (
+        <ConfirmModal
+          isDesktop={isDesktop}
+          title="Permanently delete this entry?"
+          body={`This removes ${pendingPurge.guest_name}'s booking from the admin log only. The Google Calendar event is not affected.`}
+          confirmLabel={purging ? 'Deleting…' : 'Delete Entry'}
+          cancelLabel="Cancel"
+          purging={purging}
+          onConfirm={handlePurgeSingle}
+          onClose={() => !purging && setPendingPurge(null)}
+        />
+      )}
+
+      {/* Purge all cancelled confirm */}
+      {showPurgeAll && (
+        <ConfirmModal
+          isDesktop={isDesktop}
+          title="Delete all cancelled bookings?"
+          body={`Delete all ${cancelledCount} cancelled booking${cancelledCount !== 1 ? 's' : ''} from the log? This cannot be undone.`}
+          confirmLabel={purging ? 'Deleting…' : 'Delete All'}
+          cancelLabel="Cancel"
+          purging={purging}
+          onConfirm={handlePurgeAll}
+          onClose={() => !purging && setShowPurgeAll(false)}
+        />
+      )}
+    </>
+  )
+}
+
+function ConfirmModal({ isDesktop, title, body, confirmLabel, cancelLabel, purging, onConfirm, onClose }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.5)',
+        zIndex: 350,
+        display: 'flex',
+        alignItems: isDesktop ? 'center' : 'flex-end',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'white',
+          borderRadius: isDesktop ? '16px' : '20px 20px 0 0',
+          width: '100%',
+          maxWidth: isDesktop ? '400px' : '100%',
+          padding: '24px 20px',
+          paddingBottom: isDesktop ? '24px' : 'calc(24px + var(--safe-bottom, 0px))',
+        }}
+      >
+        <h3 style={{
+          fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700,
+          color: 'var(--color-navy)', marginBottom: '10px',
+        }}>
+          {title}
+        </h3>
+        <p style={{
+          fontSize: '14px', color: 'var(--color-text-muted)', lineHeight: 1.5,
+          marginBottom: '20px',
+        }}>
+          {body}
+        </p>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={onClose}
+            disabled={purging}
+            style={{
+              flex: 1, height: '44px', borderRadius: 'var(--radius-full)',
+              border: '1.5px solid var(--color-border)',
+              background: 'white', color: 'var(--color-text)',
+              fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-body)',
+              cursor: 'pointer', opacity: purging ? 0.6 : 1,
+            }}
+          >
+            {cancelLabel}
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={purging}
+            style={{
+              flex: 1, height: '44px', borderRadius: 'var(--radius-full)',
+              border: 'none', background: '#D4634A', color: 'white',
+              fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-body)',
+              cursor: purging ? 'default' : 'pointer',
+              opacity: purging ? 0.7 : 1,
+            }}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

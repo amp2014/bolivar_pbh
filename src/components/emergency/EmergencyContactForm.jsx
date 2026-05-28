@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { maskPhone, rawPhone } from '../../lib/phone'
 
 const CATEGORIES = ['Emergency Services', 'Medical', 'Utilities', 'House Contacts']
 
@@ -17,7 +18,7 @@ export default function EmergencyContactForm({ item = null, onSave, onClose }) {
 
   const [name,       setName]       = useState(item?.name       ?? '')
   const [category,   setCategory]   = useState(item?.category   ?? 'House Contacts')
-  const [phone,      setPhone]      = useState(item?.phone      ?? '')
+  const [phone,      setPhone]      = useState(maskPhone(item?.phone ?? ''))
   const [notes,      setNotes]      = useState(item?.notes      ?? '')
   const [sortOrder,  setSortOrder]  = useState(item?.sort_order ?? 0)
   const [saving,     setSaving]     = useState(false)
@@ -32,7 +33,7 @@ export default function EmergencyContactForm({ item = null, onSave, onClose }) {
     const payload = {
       name:       name.trim(),
       category,
-      phone:      phone.trim() || null,
+      phone:      rawPhone(phone) || null,
       notes:      notes.trim() || null,
       sort_order: Number(sortOrder) || 0,
     }
@@ -101,8 +102,8 @@ export default function EmergencyContactForm({ item = null, onSave, onClose }) {
           </Field>
 
           <Field label="Phone (optional)">
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
-              placeholder="(409) 555-0000" style={inputStyle} />
+            <input type="tel" value={phone} onChange={(e) => setPhone(maskPhone(e.target.value))}
+              placeholder="(409) 555-0000" style={inputStyle} inputMode="numeric" />
           </Field>
 
           <Field label="Notes (optional)">
