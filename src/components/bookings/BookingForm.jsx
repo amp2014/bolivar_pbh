@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useLayout } from '../../contexts/LayoutContext'
 import { createCalendarEvent, updateCalendarEvent } from '../../lib/googleCalendar'
+import OccupantsSection from './OccupantsSection'
 
 const ROOM_OPTIONS = [
   { id: 'Room 1',      sub: 'Queen bed · pack-n-play fits' },
@@ -312,6 +313,13 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
               style={{ ...inputStyle, resize: 'none', lineHeight: 1.5 }}
             />
           </Field>
+
+          {/* Who's Staying — only available once the booking exists (has an id) */}
+          {booking?.id && (
+            <div style={{ marginBottom: '16px' }}>
+              <OccupantsSection booking={booking} />
+            </div>
+          )}
 
           {/* Status toggle */}
           <Field label="Status">

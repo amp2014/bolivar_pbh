@@ -1,5 +1,4 @@
 import { useAuth } from '../../contexts/AuthContext'
-import OccupantsSection from './OccupantsSection'
 
 function formatRange(start, end) {
   const s = new Date(start + 'T12:00:00')
@@ -104,8 +103,6 @@ export default function BookingCard({ booking, onEdit, onDelete }) {
           </div>
         )}
 
-        {/* Who's Staying — visible to family/admin; edit controls gated to booker/admin inside */}
-        {isFamily && <OccupantsSection booking={booking} />}
       </div>
     </div>
   )
