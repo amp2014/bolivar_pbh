@@ -20,6 +20,19 @@ function fmtDate(iso) {
   })
 }
 
+function formatRange(start, end) {
+  const s = new Date(start + 'T12:00:00')
+  const e = new Date(end   + 'T12:00:00')
+  const sm = s.toLocaleDateString('en-US', { month: 'short' })
+  const em = e.toLocaleDateString('en-US', { month: 'short' })
+  const sy = s.getFullYear()
+  const ey = e.getFullYear()
+  const cur = new Date().getFullYear()
+  const yearSuffix = (y) => (y !== cur ? `, ${y}` : '')
+  if (sm === em && sy === ey) return `${sm} ${s.getDate()}–${e.getDate()}${yearSuffix(sy)}`
+  return `${sm} ${s.getDate()}${yearSuffix(sy)} – ${em} ${e.getDate()}${yearSuffix(ey)}`
+}
+
 export default function Stays() {
   const { isFamily, providerToken, profile } = useAuth()
   const { isDesktop } = useLayout()
