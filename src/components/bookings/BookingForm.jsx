@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useLayout } from '../../contexts/LayoutContext'
 import { createCalendarEvent, updateCalendarEvent } from '../../lib/googleCalendar'
-import OccupantsSection from './OccupantsSection'
+import OccupantsSection, { UserPickerSheet } from './OccupantsSection'
 
 const ROOM_OPTIONS = [
   { id: 'Room 1',      sub: 'Queen bed · pack-n-play fits' },
@@ -47,10 +47,12 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
   const [notes, setNotes]           = useState(parsedNotes.cleanNotes)
   const [status, setStatus]         = useState(booking?.status ?? 'confirmed')
 
-  const [overlaps, setOverlaps]     = useState([])
-  const [saving, setSaving]         = useState(false)
-  const [error, setError]           = useState(null)
-  const [syncWarning, setSyncWarning] = useState(null)
+  const [overlaps, setOverlaps]         = useState([])
+  const [saving, setSaving]             = useState(false)
+  const [error, setError]               = useState(null)
+  const [syncWarning, setSyncWarning]   = useState(null)
+  const [pendingOccupants, setPendingOccupants] = useState([]) // for new bookings only
+  const [showOccupantPicker, setShowOccupantPicker] = useState(false)
 
   const endRef = useRef(null)
 
@@ -138,6 +140,19 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
           console.warn('Calendar sync failed:', calErr.message)
           setSyncWarning('Booking saved, but Google Calendar sync failed. Re-authorize and re-save to sync.')
         }
+      }
+
+      // Insert any people selected during new-booking creation
+      if (pendingOccupants.length > 0) {
+        await Promise.all(
+          pendingOccupants.map((u) =>
+            supabase.from('stay_occupants').insert({
+              stay_id: saved.id,
+              user_id: u.id,
+              added_by: user.id,
+            })
+          )
+        )
       }
 
       onSave(saved)
@@ -314,10 +329,85 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
             />
           </Field>
 
-          {/* Who's Staying — only available once the booking exists (has an id) */}
-          {booking?.id && (
+          {/* Who's Staying */}
+          {booking?.id ? (
+            // Editing: full live section (reads + writes DB)
             <div style={{ marginBottom: '16px' }}>
               <OccupantsSection booking={booking} />
+            </div>
+          ) : (
+            // Creating: collect people locally; they're inserted after save
+            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--color-border)', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <p style={{
+                  fontSize: '10px', fontFamily: 'var(--font-mono)',
+                  letterSpacing: '1.5px', textTransform: 'uppercase',
+                  color: 'var(--color-text-muted)', fontWeight: 600,
+                }}>
+                  Who's Staying
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowOccupantPicker(true)}
+                  style={{
+                    fontSize: '12px', fontWeight: 600, color: 'var(--color-teal)',
+                    background: 'none', border: '1px solid var(--color-teal)',
+                    borderRadius: 'var(--radius-full)', padding: '3px 10px',
+                    cursor: 'pointer', fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  + Add
+                </button>
+              </div>
+
+              {pendingOccupants.length === 0 ? (
+                <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                  Just you — add others below.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {pendingOccupants.map((u) => (
+                    <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                        overflow: 'hidden', background: 'var(--color-teal-xlight)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {u.avatar_url
+                          ? <img src={u.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-navy)' }}>
+                              {(u.display_name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </span>
+                        }
+                      </div>
+                      <span style={{ flex: 1, fontSize: '13px', fontWeight: 500, color: 'var(--color-navy)', fontFamily: 'var(--font-body)' }}>
+                        {u.display_name ?? 'Unknown'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPendingOccupants((prev) => prev.filter((p) => p.id !== u.id))}
+                        style={{
+                          width: 22, height: 22, borderRadius: '50%',
+                          border: '1px solid var(--color-border)',
+                          background: 'var(--color-sand-50)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer', fontSize: '12px', color: 'var(--color-text-muted)',
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {showOccupantPicker && (
+                <UserPickerSheet
+                  existingIds={pendingOccupants.map((u) => u.id)}
+                  onSelect={(u) => setPendingOccupants((prev) => [...prev, u])}
+                  onClose={() => setShowOccupantPicker(false)}
+                />
+              )}
             </div>
           )}
 

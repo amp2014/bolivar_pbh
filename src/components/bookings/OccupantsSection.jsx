@@ -171,8 +171,11 @@ export default function OccupantsSection({ booking }) {
 }
 
 // ── User picker sheet ────────────────────────────────────────────────────────
+// Two modes:
+//   saved  — pass stayId + onAdded: writes directly to stay_occupants
+//   pending — pass onSelect: returns the user object to the caller (no DB write)
 
-function UserPickerSheet({ stayId, existingIds, onAdded, onClose }) {
+export function UserPickerSheet({ stayId, existingIds = [], onAdded, onSelect, onClose }) {
   const { user: currentUser } = useAuth()
   const [allUsers, setAllUsers] = useState([])
   const [search, setSearch]     = useState('')
@@ -209,6 +212,13 @@ function UserPickerSheet({ stayId, existingIds, onAdded, onClose }) {
   )
 
   async function addUser(u) {
+    if (onSelect) {
+      // Pending mode — hand user back to the caller, no DB write yet
+      onSelect(u)
+      dismiss()
+      return
+    }
+    // Saved mode — write directly to stay_occupants
     setAdding(u.id)
     const { error } = await supabase.from('stay_occupants').insert({
       stay_id: stayId,
