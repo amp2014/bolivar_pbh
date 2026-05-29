@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getTidePredictions, getCurrentTideState, getWaterTemp } from '../../services/noaa'
 import { useWeather } from '../../hooks/useWeather'
 
@@ -127,6 +128,7 @@ export function CurrentConditionsCard({ onSeeAll }) {
 
 // ── TideBoard page ────────────────────────────────────────────────────────────
 export default function TideBoard() {
+  const navigate                       = useNavigate()
   const [predictions, setPredictions] = useState([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState(false)
@@ -168,12 +170,17 @@ export default function TideBoard() {
       }}>
 
         {/* Header */}
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: '26px', fontWeight: 700,
-          color: 'var(--color-navy)', padding: '0 16px 16px', margin: 0,
-        }}>
-          Tides
-        </h1>
+        <div style={{ padding: '0 16px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            onClick={() => navigate('/fishing')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', fontSize: '14px', fontFamily: 'var(--font-body)', padding: 0 }}
+          >
+            ← Back
+          </button>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 700, color: 'var(--color-navy)', margin: 0 }}>
+            Tides
+          </h1>
+        </div>
 
         {/* Current conditions card */}
         <div style={{ padding: '0 16px 20px' }}>

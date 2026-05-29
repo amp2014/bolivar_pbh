@@ -22,7 +22,6 @@ const FishIcon    = (s) => (
 const MapPinIcon  = (s) => <Icon size={s} d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" circle={{ cx:12, cy:9, r:3 }} />
 const CameraIcon  = (s) => <Icon size={s} d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" circle={{ cx:12, cy:13, r:4 }} />
 const BuildingIcon = (s) => <Icon size={s} d="M12 2L2 7l10 5 10-5-10-5z" d2="M2 17l10 5 10-5M2 12l10 5 10-5" />
-const KeyRoundIcon = (s) => <Icon size={s} d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
 const PhoneIcon   = (s) => <Icon size={s} d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 9.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 5.96 5.96l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21 17z" />
 const ShieldIcon  = (s) => <Icon size={s} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
 
@@ -71,13 +70,6 @@ export const FEATURES = {
     route: '/house',
     roles: ['all'],
   },
-  houseInfo: {
-    key: 'houseInfo',
-    label: 'Info',
-    icon: KeyRoundIcon,
-    route: '/info',
-    roles: ['family', 'admin'],
-  },
   emergency: {
     key: 'emergency',
     label: 'Emergency',
@@ -102,7 +94,6 @@ export const FEATURES_LIST = [
   FEATURES.local,
   FEATURES.photos,
   FEATURES.house,
-  FEATURES.houseInfo,
   FEATURES.emergency,
   FEATURES.admin,
 ]

@@ -1,14 +1,46 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavConfig } from '../contexts/NavConfigContext'
 
+function useAddressSuggestions(query) {
+  const [suggestions, setSuggestions] = useState([])
+  const timerRef = useRef(null)
+  useEffect(() => {
+    if (query.trim().length < 4) { setSuggestions([]); return }
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(async () => {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=us&q=${encodeURIComponent(query)}`
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
+        if (!res.ok) return
+        const data = await res.json()
+        setSuggestions(data.map(r => r.display_name))
+      } catch (_) {}
+    }, 420)
+    return () => clearTimeout(timerRef.current)
+  }, [query])
+  return suggestions
+}
+
 export default function SideNav({ onShowWelcomeGuide }) {
-  const { profile, role, signOut } = useAuth()
+  const { profile, role, signOut, updateProfile } = useAuth()
   const { allFeatures }            = useNavConfig()
   const [hoveredKey, setHoveredKey] = useState(null)
+  const [editingAddr, setEditingAddr] = useState(false)
+  const [addrInput, setAddrInput]   = useState('')
+  const [saving, setSaving]         = useState(false)
+  const [showSug, setShowSug]       = useState(true)
+  const suggestions = useAddressSuggestions(addrInput)
   const navigate  = useNavigate()
   const location  = useLocation()
+
+  async function saveAddress() {
+    setSaving(true)
+    const { error } = await updateProfile({ home_address: addrInput.trim() || null })
+    setSaving(false)
+    if (!error) { setEditingAddr(false); setShowSug(false) }
+  }
 
   const avatarUrl = profile?.avatar_url
   const initials  = (profile?.display_name ?? '?')
@@ -134,6 +166,109 @@ export default function SideNav({ onShowWelcomeGuide }) {
               {role}
             </span>
           </div>
+        </div>
+
+        {/* ── Home address ── */}
+        <div style={{ marginBottom: '12px' }}>
+          {editingAddr ? (
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                value={addrInput}
+                onChange={e => { setAddrInput(e.target.value); setShowSug(true) }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') saveAddress()
+                  if (e.key === 'Escape') { setEditingAddr(false); setShowSug(false) }
+                }}
+                placeholder="123 Main St, City, TX"
+                autoFocus
+                autoComplete="off"
+                style={{
+                  width: '100%', height: '34px', padding: '0 10px',
+                  borderRadius: showSug && suggestions.length > 0 ? '6px 6px 0 0' : '6px',
+                  border: '1.5px solid rgba(255,255,255,0.3)',
+                  background: 'rgba(255,255,255,0.1)',
+                  fontFamily: 'var(--font-body)', fontSize: '12px',
+                  color: 'white', outline: 'none', boxSizing: 'border-box',
+                }}
+              />
+              {showSug && suggestions.length > 0 && (
+                <ul style={{
+                  position: 'absolute', bottom: '34px', left: 0, right: 0,
+                  background: '#0F4A63',
+                  border: '1.5px solid rgba(255,255,255,0.3)',
+                  borderBottom: 'none',
+                  borderRadius: '6px 6px 0 0',
+                  margin: 0, padding: 0, listStyle: 'none',
+                  zIndex: 10, maxHeight: '160px', overflowY: 'auto',
+                }}>
+                  {suggestions.map((s, i) => (
+                    <li
+                      key={i}
+                      onMouseDown={e => { e.preventDefault(); setAddrInput(s); setShowSug(false) }}
+                      style={{
+                        padding: '8px 10px', fontSize: '11px', color: 'rgba(255,255,255,0.85)',
+                        fontFamily: 'var(--font-body)', cursor: 'pointer', lineHeight: 1.4,
+                        borderBottom: i < suggestions.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                    >
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                <button
+                  onClick={saveAddress}
+                  disabled={saving}
+                  style={{
+                    flex: 1, height: '30px', borderRadius: '6px',
+                    background: 'var(--color-teal)', border: 'none',
+                    color: 'white', fontSize: '12px', fontFamily: 'var(--font-body)',
+                    fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+                <button
+                  onClick={() => { setEditingAddr(false); setShowSug(false) }}
+                  style={{
+                    flex: 1, height: '30px', borderRadius: '6px',
+                    background: 'transparent', border: '1px solid rgba(255,255,255,0.3)',
+                    color: 'rgba(255,255,255,0.6)', fontSize: '12px', fontFamily: 'var(--font-body)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <p style={{
+                fontSize: '11px', fontFamily: 'var(--font-body)',
+                color: profile?.home_address ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.3)',
+                margin: 0, flex: 1, lineHeight: 1.3,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
+                {profile?.home_address ?? 'No home address'}
+              </p>
+              <button
+                onClick={() => { setAddrInput(profile?.home_address ?? ''); setEditingAddr(true); setShowSug(true) }}
+                style={{
+                  fontSize: '11px', color: 'var(--color-teal-light)', fontWeight: 600,
+                  border: 'none', background: 'none', cursor: 'pointer',
+                  fontFamily: 'var(--font-body)', flexShrink: 0, padding: 0,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'white' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-teal-light)' }}
+              >
+                {profile?.home_address ? 'Edit' : 'Add'}
+              </button>
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '16px' }}>
