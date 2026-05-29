@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -158,13 +159,14 @@ export default function OccupantsSection({ booking }) {
         </div>
       )}
 
-      {showPicker && (
+      {showPicker && createPortal(
         <UserPickerSheet
           stayId={booking.id}
           existingIds={people.map((p) => p.id ?? p.user_id)}
           onAdded={() => { loadPeople(); setShowPicker(false) }}
           onClose={() => setShowPicker(false)}
-        />
+        />,
+        document.body
       )}
     </div>
   )

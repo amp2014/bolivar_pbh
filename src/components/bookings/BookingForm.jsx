@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useLayout } from '../../contexts/LayoutContext'
@@ -401,12 +402,13 @@ export default function BookingForm({ booking = null, onSave, onClose }) {
                 </div>
               )}
 
-              {showOccupantPicker && (
+              {showOccupantPicker && createPortal(
                 <UserPickerSheet
                   existingIds={pendingOccupants.map((u) => u.id)}
                   onSelect={(u) => setPendingOccupants((prev) => [...prev, u])}
                   onClose={() => setShowOccupantPicker(false)}
-                />
+                />,
+                document.body
               )}
             </div>
           )}
